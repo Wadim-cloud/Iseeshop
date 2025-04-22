@@ -13,8 +13,9 @@
     { id: 'pillow', name: 'Throw Pillow', price: 34.99, image: '/images/objects/pillow.jpg' }
   ];
   
-  // For each cart item, track which 3D object is selected
-  let selectedObjects: Record<number, string> = {};
+  // Make selectedObjects a reactive store
+  import { writable } from 'svelte/store';
+  const selectedObjects = writable<Record<string, string>>({});
   
   // Track which step of checkout we're on
   let checkoutStep: 'product-selection' | 'shipping-info' | 'success' = 'product-selection';
@@ -44,54 +45,63 @@
     // Pre-populate selected objects if cart is not empty
     if ($cartStore.length > 0) {
       $cartStore.forEach(item => {
-        if (item.selected3DObject) {
-          selectedObjects[item.drawingId] = item.selected3DObject;
-        } else {
-          // Default to first object
-          selectedObjects[item.drawingId] = objects3D[0].id;
-        }
-      });
-      
-      // Update cart items with selected objects
-      Object.entries(selectedObjects).forEach(([drawingId, objectId]) => {
-        cartActions.updateCartItem(parseInt(drawingId), { selected3DObject: objectId });
+        selectedObjects.update(current => {
+          if (!current[item.drawingId]) {
+            const objectId = item.selected3DObject || objects3D[0].id;
+            current[item.drawingId] = objectId;
+            cartActions.updateCartItem(item.drawingId, { selected3DObject: objectId });
+          }
+          return current;
+        });
       });
     } else {
-      // Redirect to gallery if cart is empty
       goto('/gallery');
     }
+
+    // Debug: Log cart and selected objects
+    console.log('Cart Store:', $cartStore);
+    console.log('Selected Objects:', $selectedObjects);
   });
   
   // Update cart item with selected 3D object
-  function updateSelection(drawingId: number, objectId: string) {
-    selectedObjects[drawingId] = objectId;
+  function updateSelection(drawingId: string, objectId: string) {
+    selectedObjects.update(current => {
+      current[drawingId] = objectId;
+      return current;
+    });
     cartActions.updateCartItem(drawingId, { selected3DObject: objectId });
+    console.log(`Updated selection for drawing ${drawingId}: ${objectId}`);
   }
   
   // Remove item from cart
-  function removeItem(drawingId: number) {
+  function removeItem(drawingId: string) {
     cartActions.removeFromCart(drawingId);
-    delete selectedObjects[drawingId];
-    
-    // Go back to gallery if cart is now empty
+    selectedObjects.update(current => {
+            return current;
+    });
     if ($cartStore.length === 0) {
       goto('/gallery');
     }
   }
   
-  // Calculate total price
   function calculateTotal() {
-    let total = 0;
-    $cartStore.forEach(item => {
-      const objectId = selectedObjects[item.drawingId];
-      const object = objects3D.find(obj => obj.id === objectId);
-      if (object) {
-        total += object.price;
-      }
-    });
-    return total;
-  }
-  
+  let total = 0;
+  $cartStore.forEach(item => {
+    const objectId = item.selected3DObject;
+    const object = objects3D.find(obj => obj.id === objectId);
+    if (object) {
+      total += object.price;
+    } else {
+      console.warn(`No object found for drawing ${item.drawingId}, objectId: ${objectId}`);
+    }
+  });
+  console.log('Calculated total:', total);
+  return total;
+}
+function updateTotals() {
+  totalAmount = calculateTotal();
+  console.log('Totals updated:', totalAmount);
+}
   // Go to shipping info step
   function goToShippingInfo() {
     checkoutStep = 'shipping-info';
@@ -104,7 +114,6 @@
     
     try {
       const result = await completePurchase(buyerInfo);
-      
       if (result.success) {
         checkoutStep = 'success';
         orderId = result.orderId;
@@ -129,6 +138,7 @@
   }
 </script>
 
+<!-- HTML remains unchanged -->
 <svelte:head>
   <title>Checkout | Pexos</title>
   <meta name="description" content="Complete your order" />
@@ -169,11 +179,10 @@
               <div class="objects-grid">
                 {#each objects3D as object}
                   <div 
-                    class="object-option {selectedObjects[item.drawingId] === object.id ? 'selected' : ''}"
+                    class="object-option {$selectedObjects[item.drawingId] === object.id ? 'selected' : ''}"
                     on:click={() => updateSelection(item.drawingId, object.id)}
                   >
                     <div class="object-image">
-                      <!-- Display a placeholder for demo purposes -->
                       <div class="object-placeholder">
                         <span>{object.name}</span>
                       </div>
@@ -189,10 +198,9 @@
               <div class="preview-section">
                 <h4>Preview</h4>
                 <div class="preview-3d">
-                  <!-- This would be replaced with an actual 3D renderer -->
                   <div class="preview-placeholder">
-                    {#if selectedObjects[item.drawingId]}
-                      {@const selectedObject = objects3D.find(obj => obj.id === selectedObjects[item.drawingId])}
+                    {#if $selectedObjects[item.drawingId]}
+                      {@const selectedObject = objects3D.find(obj => obj.id === $selectedObjects[item.drawingId])}
                       <div class="mock-3d-object">
                         <span>{selectedObject?.name || 'Object'}</span>
                         <div class="texture-overlay" style="background-image: url({item.imageData})"></div>
@@ -210,7 +218,7 @@
         <h2>Order Summary</h2>
         <div class="summary-items">
           {#each $cartStore as item}
-            {@const selectedObject = objects3D.find(obj => obj.id === selectedObjects[item.drawingId])}
+            {@const selectedObject = objects3D.find(obj => obj.id === $selectedObjects[item.drawingId])}
             <div class="summary-item">
               <span>{selectedObject?.name || 'Custom Object'}</span>
               <span>${selectedObject?.price.toFixed(2) || '0.00'}</span>
@@ -225,6 +233,7 @@
         
         <div class="checkout-actions">
           <button class="back-button" on:click={goBackToGallery}>Continue Shopping</button>
+          <button class="update-totals-button" on:click={updateTotals}>Update Totals</button>
           <button class="checkout-button" on:click={goToShippingInfo}>Continue to Shipping</button>
         </div>
       </div>
@@ -235,7 +244,7 @@
       
       <div class="summary-items">
         {#each $cartStore as item}
-          {@const selectedObject = objects3D.find(obj => obj.id === selectedObjects[item.drawingId])}
+          {@const selectedObject = objects3D.find(obj => obj.id === $selectedObjects[item.drawingId])}
           <div class="summary-item">
             <img src={item.imageData} alt="Drawing preview" class="item-thumbnail" />
             <div class="item-details">

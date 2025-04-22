@@ -189,6 +189,7 @@
       "_index.js",
       "_stores.js",
       "_supabase.js",
+      "_exports.js",
       "_client.js"
     ],
     "css": [

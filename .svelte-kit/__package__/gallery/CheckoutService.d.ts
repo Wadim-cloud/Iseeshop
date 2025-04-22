@@ -8,7 +8,7 @@ export interface BuyerInfo {
     country: string;
 }
 export interface OrderItem {
-    drawingId: number;
+    drawingId: string;
     price: number;
     selected3DObject?: string;
 }

@@ -8,7 +8,7 @@ import type { Drawing } from './GalleryContainer.svelte';
 
 // New cart store
 export type CartItem = {
-  drawingId: number;
+  drawingId: string;
   imageData: string;
   selected3DObject?: string; // Optional 3D object type to place the drawing on
 };
@@ -28,7 +28,7 @@ export const cartActions = {
     }
   },
   
-  removeFromCart: (drawingId: number) => {
+  removeFromCart: (drawingId: string) => {
     cartStore.update(items => items.filter(item => item.drawingId !== drawingId));
   },
   
@@ -36,7 +36,7 @@ export const cartActions = {
     cartStore.set([]);
   },
   
-  updateCartItem: (drawingId: number, updates: Partial<CartItem>) => {
+  updateCartItem: (drawingId: string, updates: Partial<CartItem>) => {
     cartStore.update(items => 
       items.map(item => 
         item.drawingId === drawingId 

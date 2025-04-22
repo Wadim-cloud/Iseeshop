@@ -22,7 +22,7 @@ export interface BuyerInfo {
 }
 
 export interface OrderItem {
-  drawingId: number;
+  drawingId: string;
   price: number;
   selected3DObject?: string;
 }
