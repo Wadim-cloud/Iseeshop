@@ -1,0 +1,21 @@
+{
+	"siteId": "8349ad64-9b07-44bb-a9bb-992072770e50",
+	"geolocation": {
+		"data": {
+			"city": "Nijmegen",
+			"country": {
+				"code": "NL",
+				"name": "The Netherlands"
+			},
+			"subdivision": {
+				"code": "GE",
+				"name": "Gelderland"
+			},
+			"timezone": "Europe/Amsterdam",
+			"latitude": 51.8385,
+			"longitude": 5.8731,
+			"postalCode": "6521"
+		},
+		"timestamp": 1745271343391
+	}
+}

@@ -1,0 +1,63 @@
+functionsDirectory = "C:\\Users\\ReMarkt\\Documents\\Devops\\Drawi\\netlify\\functions"
+functionsDirectoryOrigin = "config-v1"
+headersOrigin = "config"
+plugins = []
+
+[build]
+publish = "C:\\Users\\ReMarkt\\Documents\\Devops\\Drawi\\build"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npm run build"
+functions = "C:\\Users\\ReMarkt\\Documents\\Devops\\Drawi\\netlify\\functions"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[dev]
+framework = "svelte-kit"
+targetPort = 5173.0
+
+[functions]
+
+[functions."*"]
+
+[[headers]]
+for = "/_app/immutable/*"
+
+[headers.values]
+cache-control = "public, immutable, max-age=31536000"
+
+[[redirects]]
+from = "/api/check-rate-limit"
+to = "/.netlify/functions/check-rate-limit"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "*"
+to = "/.netlify/functions/sveltekit-render"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]

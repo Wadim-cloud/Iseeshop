@@ -1,0 +1,1 @@
+module.exports = require('./.netlify/v1/functions/check-rate-limit.js')
