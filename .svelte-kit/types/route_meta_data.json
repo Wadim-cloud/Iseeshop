@@ -1,0 +1,14 @@
+{
+	"/": [],
+	"/about": [],
+	"/auth/callback": [],
+	"/create": [
+		"src/routes/create/+page.server.ts"
+	],
+	"/gallery": [
+		"src/routes/gallery/+page.server.ts"
+	],
+	"/gallery/checkout": [],
+	"/shaders-filters": [],
+	"/todo": []
+}

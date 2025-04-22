@@ -1,0 +1,3 @@
+/api/check-rate-limit /.netlify/functions/check-rate-limit 200
+
+* /.netlify/functions/sveltekit-render 200
