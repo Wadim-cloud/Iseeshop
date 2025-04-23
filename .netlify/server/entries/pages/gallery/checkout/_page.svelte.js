@@ -1,4 +1,4 @@
-import { N as store_get, M as head, E as ensure_array_like, F as attr, G as attr_class, I as escape_html, V as stringify, U as attr_style, P as unsubscribe_stores, C as pop, z as push } from "../../../../chunks/index.js";
+import { N as store_get, I as head, J as ensure_array_like, G as attr, E as attr_class, K as escape_html, F as stringify, U as attr_style, O as unsubscribe_stores, C as pop, z as push } from "../../../../chunks/index.js";
 import { c as cartStore } from "../../../../chunks/stores.js";
 import "../../../../chunks/supabase.js";
 import { w as writable } from "../../../../chunks/exports.js";
@@ -77,10 +77,10 @@ function _page($$payload, $$props) {
     for (let $$index_1 = 0, $$length = each_array.length; $$index_1 < $$length; $$index_1++) {
       let item = each_array[$$index_1];
       const each_array_1 = ensure_array_like(objects3D);
-      $$payload.out += `<div class="checkout-item svelte-umoqr3"><div class="item-image svelte-umoqr3"><img${attr("src", item.imageData)} alt="Drawing preview" class="svelte-umoqr3"> <button class="remove-button svelte-umoqr3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></div> <div class="item-options svelte-umoqr3"><h3>Select 3D Object</h3> <div class="objects-grid svelte-umoqr3"><!--[-->`;
+      $$payload.out += `<div class="checkout-item svelte-umoqr3"><div class="item-image svelte-umoqr3"><img${attr("src", item.imageData)} alt="Drawing preview" class="svelte-umoqr3"> <button class="remove-button svelte-umoqr3" aria-label="Remove item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></div> <div class="item-options svelte-umoqr3"><h3>Select 3D Object</h3> <div class="objects-grid svelte-umoqr3"><!--[-->`;
       for (let $$index = 0, $$length2 = each_array_1.length; $$index < $$length2; $$index++) {
         let object = each_array_1[$$index];
-        $$payload.out += `<div${attr_class(`object-option ${stringify(store_get($$store_subs ??= {}, "$selectedObjects", selectedObjects)[item.drawingId] === object.id ? "selected" : "")}`, "svelte-umoqr3")}><div class="object-image svelte-umoqr3"><div class="object-placeholder svelte-umoqr3"><span>${escape_html(object.name)}</span></div></div> <div class="object-info svelte-umoqr3"><span class="object-name svelte-umoqr3">${escape_html(object.name)}</span> <span class="object-price svelte-umoqr3">$${escape_html(object.price.toFixed(2))}</span></div></div>`;
+        $$payload.out += `<div${attr_class(`object-option ${stringify(store_get($$store_subs ??= {}, "$selectedObjects", selectedObjects)[item.drawingId] === object.id ? "selected" : "")}`, "svelte-umoqr3")} role="button" tabindex="0"${attr("aria-label", `Select ${object.name}`)}><div class="object-image svelte-umoqr3"><div class="object-placeholder svelte-umoqr3"><span>${escape_html(object.name)}</span></div></div> <div class="object-info svelte-umoqr3"><span class="object-name svelte-umoqr3">${escape_html(object.name)}</span> <span class="object-price svelte-umoqr3">$${escape_html(object.price.toFixed(2))}</span></div></div>`;
       }
       $$payload.out += `<!--]--></div> <div class="preview-section svelte-umoqr3"><h4>Preview</h4> <div class="preview-3d svelte-umoqr3"><div class="preview-placeholder svelte-umoqr3">`;
       if (store_get($$store_subs ??= {}, "$selectedObjects", selectedObjects)[item.drawingId]) {

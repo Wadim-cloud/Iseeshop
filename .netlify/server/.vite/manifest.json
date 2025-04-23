@@ -92,7 +92,7 @@
       "_exports.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.MI5BRfEF.css"
+      "_app/immutable/assets/_layout.P25eIEx4.css"
     ]
   },
   "src/routes/+page.svelte": {
@@ -106,7 +106,7 @@
       "_supabase.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.BLYwtXgI.css",
+      "_app/immutable/assets/_page.DFPY4KI0.css",
       "_app/immutable/assets/CanvasShader.DGCYF2tG.css"
     ]
   },
@@ -154,7 +154,7 @@
       "_index-server.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.CKK3cO4k.css",
+      "_app/immutable/assets/_page.DZlHlQ4e.css",
       "_app/immutable/assets/CanvasShader.DGCYF2tG.css"
     ]
   },
@@ -177,7 +177,7 @@
       "_exports.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.BTWCdubD.css"
+      "_app/immutable/assets/_page.BKMwqCgw.css"
     ]
   },
   "src/routes/gallery/checkout/+page.svelte": {
@@ -194,6 +194,18 @@
     ],
     "css": [
       "_app/immutable/assets/_page.BU69CtnZ.css"
+    ]
+  },
+  "src/routes/playground/+page.svelte": {
+    "file": "entries/pages/playground/_page.svelte.js",
+    "name": "entries/pages/playground/_page.svelte",
+    "src": "src/routes/playground/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index.js"
+    ],
+    "css": [
+      "_app/immutable/assets/_page.C9Pc5rg0.css"
     ]
   },
   "src/routes/shaders-filters/+page.svelte": {

@@ -7,10 +7,10 @@ function __memo(fn) {
 return {
 	appDir: "_app",
 	appPath: "_app",
-	assets: new Set(["favicon.png","logo192.png","models/Dobbelsteen.stl","models/test.stl","models/tshirt.stl","texture/boom.png","_redirects"]),
-	mimeTypes: {".png":"image/png",".stl":"model/stl"},
+	assets: new Set(["chimp.jpg","favicon.png","fonts/Inter_18pt-ExtraBold.ttf","fonts/Inter_18pt-ExtraLight.ttf","fonts/Inter_18pt-Light.ttf","fonts/Inter_18pt-Medium.ttf","fonts/Inter_18pt-Regular.ttf","fonts/Stanley.otf","frogger.jpg","logo192.png","models/Dobbelsteen.stl","models/test.stl","models/tshirt.stl","texture/boom.png","_redirects"]),
+	mimeTypes: {".jpg":"image/jpeg",".png":"image/png",".ttf":"font/ttf",".otf":"font/otf",".stl":"model/stl"},
 	_: {
-		client: {start:"_app/immutable/entry/start.Bq-Nn7fd.js",app:"_app/immutable/entry/app.C2ZNMQkd.js",imports:["_app/immutable/entry/start.Bq-Nn7fd.js","_app/immutable/chunks/E_7-NnNK.js","_app/immutable/chunks/Cw_GAJ-8.js","_app/immutable/chunks/DV9TUGiz.js","_app/immutable/entry/app.C2ZNMQkd.js","_app/immutable/chunks/C1FmrZbK.js","_app/immutable/chunks/Cw_GAJ-8.js","_app/immutable/chunks/tsz7uQk5.js","_app/immutable/chunks/fM_HHR7z.js","_app/immutable/chunks/JX9NnDbc.js","_app/immutable/chunks/C3V-GO8h.js","_app/immutable/chunks/DaUur2Kz.js","_app/immutable/chunks/BbjLjIkL.js","_app/immutable/chunks/DV9TUGiz.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.BdQf0EKZ.js",app:"_app/immutable/entry/app.BOPKXE-W.js",imports:["_app/immutable/entry/start.BdQf0EKZ.js","_app/immutable/chunks/ZC7F_AQJ.js","_app/immutable/chunks/B668RH8u.js","_app/immutable/chunks/CxeLWBhm.js","_app/immutable/entry/app.BOPKXE-W.js","_app/immutable/chunks/C1FmrZbK.js","_app/immutable/chunks/B668RH8u.js","_app/immutable/chunks/DhXqswRN.js","_app/immutable/chunks/DxolCNix.js","_app/immutable/chunks/CoxfEDN7.js","_app/immutable/chunks/DF75DhTM.js","_app/immutable/chunks/BfDDsPvW.js","_app/immutable/chunks/BHuW5wU9.js","_app/immutable/chunks/CxeLWBhm.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('./nodes/0.js')),
 			__memo(() => import('./nodes/1.js')),
@@ -21,7 +21,8 @@ return {
 			__memo(() => import('./nodes/6.js')),
 			__memo(() => import('./nodes/7.js')),
 			__memo(() => import('./nodes/8.js')),
-			__memo(() => import('./nodes/9.js'))
+			__memo(() => import('./nodes/9.js')),
+			__memo(() => import('./nodes/10.js'))
 		],
 		routes: [
 			{
@@ -67,17 +68,24 @@ return {
 				endpoint: null
 			},
 			{
+				id: "/playground",
+				pattern: /^\/playground\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 8 },
+				endpoint: null
+			},
+			{
 				id: "/shaders-filters",
 				pattern: /^\/shaders-filters\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 8 },
+				page: { layouts: [0,], errors: [1,], leaf: 9 },
 				endpoint: null
 			},
 			{
 				id: "/todo",
 				pattern: /^\/todo\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 9 },
+				page: { layouts: [0,], errors: [1,], leaf: 10 },
 				endpoint: null
 			}
 		],

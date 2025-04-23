@@ -89,7 +89,7 @@
     @media (max-width: 768px) {
       .controls {
         top: 0.5rem;
-        left: 0.5rem;
+        left: 9rem;
       }
   
       .control-button {

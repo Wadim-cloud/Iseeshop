@@ -1,12 +1,17 @@
 <script lang="ts">
   import { supabase } from '$lib/supabase';
   import NavBar from '$lib/NavBar.svelte';
+  import { ModeWatcher } from 'mode-watcher';
   import type { LayoutData } from './$types';
   import { goto } from '$app/navigation';
   import { writable } from 'svelte/store';
   import { browser } from '$app/environment';
+  import '$lib/global.css';
+  import type { Session } from '@supabase/supabase-js';
 
-  export let data: LayoutData;
+  // Define props using $props() for runes mode
+  let { data, children } = $props<{ data: LayoutData; children: () => unknown }>();
+
   const sessionStore = writable<Session | null>(data.session);
   const loading = writable(true);
 
@@ -54,18 +59,15 @@
 <svelte:head>
   <meta name="google-site-verification" content="fP4cuGw4wrszN9kcVbzYHTB8bKj4YSxHTyZDSGOvyPk" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Open Graph Meta Tags for Social Media -->
   <meta property="og:title" content="Pexos, collaborative creative platform" />
   <meta property="og:description" content="Log in and start creating." />
   <meta property="og:image" content="https://pexos.netlify.app/logo192.png" />
   <meta property="og:url" content="https://pexos.netlify.app" />
   <meta property="og:type" content="website" />
-  <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Pexos, collaborative creative platform" />
   <meta name="twitter:description" content="Log in and start creating." />
   <meta name="twitter:image" content="https://pexos.netlify.app/logo192.png" />
-  <!-- Google Tag Manager -->
   {#if browser}
     <script>
       (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -75,24 +77,27 @@
       })(window,document,'script','dataLayer','GTM-TVHZWJGB');
     </script>
   {/if}
-  <!-- End Google Tag Manager -->
 </svelte:head>
 
-<!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TVHZWJGB"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
 
+<ModeWatcher default="light" themeColors={{ light: '#f0f0f0', dark: '#1a1a1a' }} disableTransitions />
 {#if $loading}
   <div>Loading...</div>
 {:else}
   <NavBar session={$sessionStore} onAuthToggle={handleAuthToggle} />
-  <slot />
+  {@render children()}
 {/if}
 
 <style>
   :global(body) {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: Inter, sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
 </style>

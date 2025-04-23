@@ -1,4 +1,4 @@
-import { I as escape_html, E as ensure_array_like, F as attr, G as attr_class, V as stringify, J as bind_props, C as pop, z as push, N as store_get, P as unsubscribe_stores, S as fallback, M as head } from "../../../chunks/index.js";
+import { K as escape_html, J as ensure_array_like, G as attr, E as attr_class, F as stringify, S as bind_props, C as pop, z as push, N as store_get, O as unsubscribe_stores, R as fallback, I as head } from "../../../chunks/index.js";
 import "../../../chunks/client.js";
 import { c as cartStore, a as cartSize, l as likesStore } from "../../../chunks/stores.js";
 import { s as supabase } from "../../../chunks/supabase.js";
@@ -80,48 +80,48 @@ function GalleryView($$payload, $$props) {
 }
 function Pagination($$payload, $$props) {
   push();
+  let pages;
   let currentPage = fallback($$props["currentPage"], 1);
   let totalPages = fallback($$props["totalPages"], 1);
-  $$payload.out += `<nav class="pagination svelte-rc3ooi"><button${attr("disabled", currentPage === 1, true)} aria-label="Previous Page" class="svelte-rc3ooi">◀ Prev</button> `;
+  pages = (() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pageSet = /* @__PURE__ */ new Set();
+    pageSet.add(1);
+    pageSet.add(totalPages);
+    if (currentPage > 1) pageSet.add(currentPage - 1);
+    pageSet.add(currentPage);
+    if (currentPage < totalPages) pageSet.add(currentPage + 1);
+    return Array.from(pageSet).sort((a, b) => a - b);
+  })();
+  $$payload.out += `<nav class="pagination svelte-1hgqvg2"><button${attr("disabled", currentPage === 1, true)} aria-label="Previous Page" class="svelte-1hgqvg2">◀ Prev</button> `;
   if (totalPages <= 7) {
     $$payload.out += "<!--[-->";
     const each_array = ensure_array_like(Array(totalPages));
     $$payload.out += `<!--[-->`;
     for (let i = 0, $$length = each_array.length; i < $$length; i++) {
       each_array[i];
-      $$payload.out += `<button${attr_class("svelte-rc3ooi", void 0, { "selected": i + 1 === currentPage })}>${escape_html(i + 1)}</button>`;
+      $$payload.out += `<button${attr_class("svelte-1hgqvg2", void 0, { "selected": i + 1 === currentPage })}>${escape_html(i + 1)}</button>`;
     }
     $$payload.out += `<!--]-->`;
   } else {
     $$payload.out += "<!--[!-->";
-    const each_array_1 = ensure_array_like([
-      1,
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      totalPages
-    ]);
+    const each_array_1 = ensure_array_like(pages);
     $$payload.out += `<!--[-->`;
-    for (let $$index_1 = 0, $$length = each_array_1.length; $$index_1 < $$length; $$index_1++) {
-      let page = each_array_1[$$index_1];
-      if (page > 0 && page <= totalPages) {
+    for (let index = 0, $$length = each_array_1.length; index < $$length; index++) {
+      let page = each_array_1[index];
+      if (index > 0 && page - pages[index - 1] > 1) {
         $$payload.out += "<!--[-->";
-        if (page !== currentPage - 2 && page !== currentPage + 2) {
-          $$payload.out += "<!--[-->";
-          $$payload.out += `<button${attr_class("svelte-rc3ooi", void 0, { "selected": page === currentPage })}>${escape_html(page)}</button>`;
-        } else {
-          $$payload.out += "<!--[!-->";
-          $$payload.out += `<span class="svelte-rc3ooi">…</span>`;
-        }
-        $$payload.out += `<!--]-->`;
+        $$payload.out += `<span class="svelte-1hgqvg2">…</span>`;
       } else {
         $$payload.out += "<!--[!-->";
       }
-      $$payload.out += `<!--]-->`;
+      $$payload.out += `<!--]--> <button${attr_class("svelte-1hgqvg2", void 0, { "selected": page === currentPage })}>${escape_html(page)}</button>`;
     }
     $$payload.out += `<!--]-->`;
   }
-  $$payload.out += `<!--]--> <button${attr("disabled", currentPage === totalPages, true)} aria-label="Next Page" class="svelte-rc3ooi">Next ▶</button></nav>`;
+  $$payload.out += `<!--]--> <button${attr("disabled", currentPage === totalPages, true)} aria-label="Next Page" class="svelte-1hgqvg2">Next ▶</button></nav>`;
   bind_props($$props, { currentPage, totalPages });
   pop();
 }
@@ -191,7 +191,7 @@ function GalleryContainer($$payload, $$props) {
   const pagination = writable({
     currentPage: 1,
     totalPages: 1,
-    itemsPerPage: 40
+    itemsPerPage: 42
   });
   async function fetchDrawings(page) {
     loading.set(true);

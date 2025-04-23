@@ -1,4 +1,8 @@
 import type { Session } from '@supabase/supabase-js';
+type $$ComponentProps = {
+    session: Session | null;
+    onAuthToggle: () => void;
+};
 interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
     new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
         $$bindings?: Bindings;
@@ -12,13 +16,10 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     };
     z_$$bindings?: Bindings;
 }
-declare const NavBar: $$__sveltets_2_IsomorphicComponent<{
-    session: Session | null;
-    onAuthToggle: () => void;
-}, {
+declare const NavBar: $$__sveltets_2_IsomorphicComponent<$$ComponentProps, {
     click: MouseEvent;
 } & {
     [evt: string]: CustomEvent<any>;
-}, {}, {}, string>;
+}, {}, {}, "">;
 type NavBar = InstanceType<typeof NavBar>;
 export default NavBar;

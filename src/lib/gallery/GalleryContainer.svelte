@@ -16,7 +16,7 @@
   const pagination = writable({
     currentPage: 1,
     totalPages: 1,
-    itemsPerPage: 40
+    itemsPerPage: 42
   });
 
   // Types

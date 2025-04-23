@@ -9,6 +9,7 @@
 		"src/routes/gallery/+page.server.ts"
 	],
 	"/gallery/checkout": [],
+	"/playground": [],
 	"/shaders-filters": [],
 	"/todo": []
 }

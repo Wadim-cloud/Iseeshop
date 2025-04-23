@@ -10,13 +10,13 @@
   let showAuthModal = false;
   let loading = true;
   let session = null;
-  
+
   // Cinematic effect states
   let contentReady = false;
   let elementsVisible = false;
   let titleVisible = false;
   let subtitleVisible = false;
-  let headlineVisible = false;  // New state for headline
+  let headlineVisible = false;
   let buttonVisible = false;
 
   onMount(async () => {
@@ -27,18 +27,17 @@
         console.error('Session check error:', error.message);
       }
       session = initialSession;
-      
-      // Start cinematic sequence after session check
+      console.log('Initial session:', session ? 'User logged in' : 'No user');
+
+      // Start cinematic sequence
       setTimeout(() => {
         loading = false;
-        
-        // Staggered animation sequence
         setTimeout(() => contentReady = true, 300);
         setTimeout(() => elementsVisible = true, 800);
         setTimeout(() => titleVisible = true, 1300);
         setTimeout(() => subtitleVisible = true, 1800);
-        setTimeout(() => headlineVisible = true, 2200); // Show headline
-        setTimeout(() => buttonVisible = true, 2800);  // Delayed button appearance
+        setTimeout(() => headlineVisible = true, 2200);
+        setTimeout(() => buttonVisible = true, 2800);
       }, 1000);
 
       const redirectTo = $page.url.searchParams.get('redirect');
@@ -46,6 +45,7 @@
         console.log('Redirect param:', redirectTo);
         localStorage.setItem('sb-redirect', decodeURIComponent(redirectTo));
         if (!session) {
+          console.log('No session, showing auth modal');
           showAuthModal = true;
         } else {
           console.log('User already signed in, redirecting to:', redirectTo);
@@ -73,78 +73,86 @@
     }
   });
 
-  const handleSignInClick = () => {
-    console.log('Sign In button clicked');
+  function handleSignInClick() {
+    console.log('Sign In button clicked, setting showAuthModal to true');
     showAuthModal = true;
-  };
+    console.log('showAuthModal state:', showAuthModal);
+  }
 </script>
 
 <svelte:head>
   <title>Pexos - Creative Platform</title>
-  <meta name="description" content="A collaborative creative platform" />
+  <meta name="description" content="A collaborative creative platform for drawing, plotting, selling, and solving challenges." />
 </svelte:head>
 
 {#if loading}
-  <div class="container cinematic-loader" role="status" aria-live="polite">
-    <div class="overlay"></div>
-    <div class="loading-content">
-      <img
-        src="/logo192.png"
-        alt="Pexos Logo"
-        class="logo-image floating"
-      />
-      <p class="loading-text floating">Loading Pexos...</p>
+  <div class="loader-container" role="status" aria-live="polite">
+    <div class="loader-overlay"></div>
+    <div class="loader-content">
+      <img src="/logo192.png" alt="Pexos Logo" class="loader-logo floating" />
+      <p class="loader-text">Initializing Pexos...</p>
     </div>
   </div>
 {:else}
-  <div class="container cinematic-container">
-    <div class="shader-background" class:active={contentReady}>
+  <div class="hero-container">
+    <div class="shader-layer" class:active={contentReady}>
       <CanvasShader />
     </div>
-    
-    <!-- Cinematic overlay that fades out -->
-    <div class="cinematic-overlay" class:fade-out={contentReady}></div>
-    
+    <div class="overlay-layer" class:fade-out={contentReady}></div>
+
     <!-- Decorative elements -->
-    <div class="bg-element top-right" class:visible={elementsVisible}></div>
-    <div class="bg-element bottom-left" class:visible={elementsVisible}></div>
-    <div class="bg-element center-lines" class:visible={elementsVisible}></div>
-    
-    <div class="content cinematic-content">
+    <div class="deco-element top-right" class:visible={elementsVisible}></div>
+    <div class="deco-element bottom-left" class:visible={elementsVisible}></div>
+    <div class="deco-element center-glow" class:visible={elementsVisible}></div>
+
+    <div class="hero-content">
       {#if titleVisible}
-        <div in:fly={{ y: 30, duration: 1000 }}>
-          <img src="/logo192.png" alt="Pexos Logo" class="logo-image" />
+        <div in:fly={{ y: 50, duration: 1000 }}>
+          <img src="/logo192.png" alt="Pexos Logo" class="hero-logo" />
         </div>
       {/if}
-      
+
       {#if titleVisible}
-        <div in:fly={{ y: 30, duration: 1000, delay: 200 }}>
-          <h1>Pexos</h1>
+        <div in:fly={{ y: 50, duration: 1000, delay: 200 }}>
+          <h1 class="hero-title">Pexos</h1>
         </div>
       {/if}
-      
-      <div class="horizontal-bar" class:animate={subtitleVisible}></div>
-      
+
       {#if subtitleVisible}
-        <div in:fly={{ y: 20, duration: 800, delay: 300 }}>
-          <p>A collaborative creative platform</p>
+        <div in:fly={{ y: 30, duration: 800, delay: 300 }}>
+          <p class="hero-subtitle">A Collaborative Creative Platform</p>
         </div>
       {/if}
-      
-      <!-- New headline section -->
+
       {#if headlineVisible}
-        <div in:fly={{ y: 20, duration: 800, delay: 300 }} class="headline-container">
-          <h2 class="main-headline">Create Drawings, Plot them, Sell them, Solve Community Challenges</h2>
+        <div in:fly={{ x: -100, duration: 1000, delay: 400 }} class="headline-section">
+          <h2 class="hero-headline">
+            {#if session}
+              Welcome back, {session.user.email}!
+            {:else}
+              Join the Pexos community and unleash your creativity!
+            {/if}
+            Create, Plot, Sell, and Solve Community Challenges
+          </h2>
         </div>
       {/if}
-      
+
       {#if !showAuthModal && !session && buttonVisible}
-        <div in:fade={{ duration: 800, delay: 200 }}>
+        <div in:fade={{ duration: 800, delay: 500 }}>
           <button
-            class="login-button"
+            class="sign-in-button"
             on:click={handleSignInClick}
             on:keydown={(e) => (e.key === 'Enter' || e.key === 'Space') && handleSignInClick()}
+            aria-label="Sign in to Pexos"
           >
+            <span class="button-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8z"
+                  fill="white"
+                />
+              </svg>
+            </span>
             Sign In
           </button>
         </div>
@@ -154,6 +162,7 @@
 {/if}
 
 {#if showAuthModal}
+  <div class="modal-debug">Modal should be visible</div>
   <AuthModal
     bind:show={showAuthModal}
     on:authSuccess={async () => {
@@ -172,247 +181,248 @@
 {/if}
 
 <style>
-  .container {
+  :global(body) {
+    margin: 0;
+    font-family: 'Stanley', sans-serif;
+    background: #0a0a0a;
+  }
+
+  .loader-container, .hero-container {
     display: flex;
     height: 100vh;
     position: relative;
     overflow: hidden;
+    z-index: 1;
   }
 
-  .cinematic-container {
-    background-color: #0a0a0a;
-    color: white;
+  .loader-container {
+    background: #0a0a0a;
+    justify-content: center;
+    align-items: center;
   }
 
-  .cinematic-loader {
-    background-color: #0a0a0a;
+  .hero-container {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1c2526 100%);
   }
 
-  .cinematic-overlay {
+  .loader-overlay, .overlay-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.9);
     z-index: 10;
-    transition: opacity 1.8s cubic-bezier(0.19, 1, 0.22, 1);
-    opacity: 1;
+    transition: opacity 1.5s ease;
   }
 
-  .cinematic-overlay.fade-out {
+  .overlay-layer.fade-out {
     opacity: 0;
   }
 
-  .shader-background {
+  .shader-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
     opacity: 0.3;
     transform: scale(1.1);
-    transition: all 3s cubic-bezier(0.19, 1, 0.22, 1);
+    transition: all 2.5s ease;
+    z-index: 2;
   }
 
-  .shader-background.active {
-    opacity: 0.7;
+  .shader-layer.active {
+    opacity: 0.6;
     transform: scale(1);
   }
 
-  .bg-element {
+  .deco-element {
     position: absolute;
     opacity: 0;
-    transition: opacity 2s ease, transform 2s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: opacity 1.5s ease, transform 1.5s ease;
     z-index: 3;
   }
 
-  .bg-element.top-right {
-    top: 5%;
-    right: 5%;
-    width: 30%;
-    height: 30%;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-    transform: translate(20px, -20px);
+  .deco-element.top-right {
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(0, 123, 255, 0.2) 0%, transparent 70%);
+    transform: translate(50px, -50px);
   }
 
-  .bg-element.bottom-left {
-    bottom: 5%;
-    left: 5%;
-    width: 25%;
-    height: 25%;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    transform: translate(-20px, 20px);
+  .deco-element.bottom-left {
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(0, 123, 255, 0.2) 0%, transparent 70%);
+    transform: translate(-50px, 50px);
   }
 
-  .bg-element.center-lines {
+  .deco-element.center-glow {
     top: 50%;
     left: 50%;
-    width: 60%;
-    height: 60%;
-    transform: translate(-50%, -50%) scale(0.9);
-    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 70%);
-    box-shadow: 0 0 40px rgba(0, 123, 255, 0.1);
+    width: 50%;
+    height: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: radial-gradient(circle, rgba(0, 123, 255, 0.1) 0%, transparent 70%);
+    box-shadow: 0 0 50px rgba(0, 123, 255, 0.2);
   }
 
-  .bg-element.visible {
+  .deco-element.visible {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
 
-  .bg-element.top-right.visible {
-    opacity: 1;
+  .deco-element.top-right.visible, .deco-element.bottom-left.visible {
     transform: translate(0, 0);
   }
 
-  .bg-element.bottom-left.visible {
-    opacity: 1;
-    transform: translate(0, 0);
-  }
-
-  .horizontal-bar {
-    width: 0;
-    height: 2px;
-    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.7), rgba(255,255,255,0));
-    margin: 1.5rem 0;
-    transition: width 1.8s cubic-bezier(0.165, 0.84, 0.44, 1);
-  }
-
-  .horizontal-bar.animate {
-    width: 40%;
-  }
-
-  .loading-content,
-  .content {
-    flex: 1;
+  .loader-content, .hero-content {
+    z-index: 20;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 20;
     text-align: center;
-  }
-
-  .cinematic-content {
-    background: transparent;
     color: white;
+    padding: 2rem;
   }
 
-  .loading-content {
-    background: rgba(10, 10, 10, 0.9);
-    color: white;
+  .loader-logo {
+    width: 100px;
+    filter: drop-shadow(0 0 15px rgba(0, 123, 255, 0.5));
   }
 
-  .logo-image {
-    width: 80px;
-    margin-bottom: 1rem;
-    filter: drop-shadow(0 0 10px rgba(0, 123, 255, 0.5));
-  }
-
-  .loading-text {
+  .loader-text {
     font-size: 1.2rem;
-    color: white;
-    font-weight: 500;
-    letter-spacing: 1px;
-  }
-
-  h1 {
-    font-size: 2.5rem;
-    color: white;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
-  }
-
-  p {
-    font-size: 1.1rem;
+    font-weight: 400;
+    letter-spacing: 1.5px;
     color: rgba(255, 255, 255, 0.8);
+  }
+
+  .hero-logo {
+    width: 120px;
     margin-bottom: 1.5rem;
+    filter: drop-shadow(0 0 20px rgba(0, 123, 255, 0.5));
+  }
+
+  .hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-shadow: 0 0 25px rgba(0, 123, 255, 0.5);
+    margin: 0.5rem 0;
+  }
+
+  .hero-subtitle {
+    font-size: 1.3rem;
     font-weight: 300;
-    letter-spacing: 1px;
-  }
-
-  /* New headline styles */
-  .headline-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 1rem 0 2rem;
-    padding: 0 1rem;
-  }
-
-  .main-headline {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: #ffffff;
-    text-shadow: 0 0 15px rgba(0, 123, 255, 0.6);
-    line-height: 1.4;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.85);
     margin-bottom: 2rem;
-    background: linear-gradient(90deg, rgba(0, 123, 255, 0.1), rgba(0, 123, 255, 0.3), rgba(0, 123, 255, 0.1));
-    padding: 1rem;
-    border-radius: 5px;
-    border-left: 3px solid rgba(0, 123, 255, 0.6);
-    border-right: 3px solid rgba(0, 123, 255, 0.6);
   }
 
-  .login-button {
+  .headline-section {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    max-width: 800px;
+    text-align: left;
+    z-index: 30;
+  }
+
+  .hero-headline {
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(0, 123, 255, 0.6);
+    padding: 1.5rem;
+    background: linear-gradient(90deg, rgba(0, 123, 255, 0.2), rgba(0, 123, 255, 0.3));
+    border-radius: 10px;
+    border: 1px solid rgba(0, 123, 255, 0.4);
+    text-align: left;
+  }
+
+  .sign-in-button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     padding: 0.75rem 2rem;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 500;
     color: white;
-    background-color: rgba(0, 123, 255, 0.2);
-    border: 1px solid rgba(0, 123, 255, 0.6);
-    border-radius: 3px;
+    background: #1c2526; /* Navy blue */
+    border: none;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.3s ease;
-    letter-spacing: 1px;
-    backdrop-filter: blur(5px);
-    box-shadow: 0 0 20px rgba(0, 123, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
   }
 
-  .login-button:hover {
-    background-color: rgba(0, 123, 255, 0.4);
-    box-shadow: 0 0 25px rgba(0, 123, 255, 0.4);
+  .sign-in-button:hover {
+    background: #2a3439;
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
     transform: translateY(-2px);
+  }
+
+  .button-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
   }
 
   .floating {
     animation: float 3s ease-in-out infinite;
   }
 
+  .modal-debug {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    color: red;
+    font-size: 14px;
+    z-index: 2000;
+  }
+
   @keyframes float {
     0% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
+    50% { transform: translateY(-10px); }
     100% { transform: translateY(0); }
   }
 
   @media (max-width: 768px) {
-    .logo-image {
-      width: 60px;
+    .hero-logo {
+      width: 80px;
     }
-    .loading-text {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+    .hero-subtitle {
       font-size: 1rem;
     }
-    h1 {
-      font-size: 2rem;
+    .hero-headline {
+      font-size: 1.8rem;
+      padding: 1rem;
     }
-    p {
-      font-size: 0.9rem;
+    .sign-in-button {
+      padding: 0.6rem 1.5rem;
+      font-size: 1rem;
     }
-    .main-headline {
-      font-size: 1.4rem;
-      padding: 0.75rem;
+    .loader-logo {
+      width: 80px;
     }
-    .login-button {
-      padding: 0.5rem 1.5rem;
-      font-size: 0.9rem;
-    }
-    .horizontal-bar.animate {
-      width: 60%;
+    .loader-text {
+      font-size: 1rem;
     }
   }
 </style>

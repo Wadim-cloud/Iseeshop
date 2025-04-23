@@ -1,1 +1,1 @@
-export { default as component } from "../../../../src/routes/todo/+page.svelte";
+export { default as component } from "../../../../src/routes/shaders-filters/+page.svelte";

@@ -5,25 +5,34 @@
   import { onMount } from 'svelte';
   import { fade, slide } from 'svelte/transition';
   import { get } from 'svelte/store';
+  import Button from './components/base/button.svelte';
+  import { toggleMode, mode } from 'mode-watcher';
+  import { derived } from 'svelte/store'; // Import derived for runes mode
 
-  export let session: Session | null;
-  export let onAuthToggle: () => void;
+  // Use $props() for runes mode
+  let { session, onAuthToggle } = $props<{
+    session: Session | null;
+    onAuthToggle: () => void;
+  }>();
 
   const navItems = [
     { name: 'Todo', href: '/todo', authRequired: true },
     { name: 'Gallery', href: '/gallery', authRequired: true },
     { name: 'Create', href: '/create', authRequired: true },
-    { name: 'About', href: '/about' }
+    { name: 'About', href: '/about', authRequired: true }
   ];
 
-  $: user = session?.user;
-  $: avatarUrl = user?.user_metadata?.avatar_url || '/default-avatar.png';
-  $: displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  $: isCreatePage = get(page).url.pathname === '/create';
+  // Replace $: with $derived for reactive computations
+  let user = $derived(session?.user);
+  let avatarUrl = $derived(user?.user_metadata?.avatar_url || '/default-avatar.png');
+  let displayName = $derived(
+    user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
+  );
+  let isCreatePage = $derived(get(page).url.pathname === '/create');
 
   let isMobile = false;
   let collapsed = true;
-  let forceDot = false; // Temporary state to force dot during navigation
+  let forceDot = false;
 
   onMount(() => {
     const update = () => (isMobile = window.innerWidth <= 768);
@@ -40,11 +49,10 @@
     collapsed = true;
   };
 
-  // Handle Create link click to ensure dot appears
   const handleCreateClick = async () => {
-    forceDot = true; // Force dot rendering during navigation
-    collapsed = true; // Close menu if open
-    await goto('/create'); // Ensure navigation
+    forceDot = true;
+    collapsed = true;
+    await goto('/create');
   };
 </script>
 
@@ -81,6 +89,13 @@
             <img src={avatarUrl} alt="User Avatar" class="avatar" />
             <span class="username">{displayName}</span>
           </div>
+          <Button onclick={toggleMode} class="mode-toggle">
+            {#if $mode === 'light'}
+              Dark
+            {:else}
+              Light
+            {/if}
+          </Button>
           <button
             on:click={() => {
               collapsed = true;
@@ -95,7 +110,6 @@
     </div>
   {/if}
 {:else}
-  <!-- Desktop nav -->
   <nav class="navbar" in:fade={{ duration: 200 }}>
     <div class="nav-container">
       <a href="/" class="brand">
@@ -124,6 +138,13 @@
             <img src={avatarUrl} alt="User Avatar" class="avatar" />
             <span class="username">{displayName}</span>
           </div>
+          <Button onclick={toggleMode} class="mode-toggle">
+            {#if $mode === 'light'}
+              Dark
+            {:else}
+              Light
+            {/if}
+          </Button>
           <button on:click={onAuthToggle} class="auth-button sign-out">Sign Out</button>
         {/if}
       </div>
@@ -137,11 +158,11 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
-    background-color: #f8f9fa;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    background-color: var(--navbar-bg);
+    box-shadow: 0 2px 6px var(--navbar-shadow);
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 1000;
   }
 
   .nav-container {
@@ -167,7 +188,7 @@
   .brand-name {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #222;
+    color: var(--text);
   }
 
   .nav-links {
@@ -177,7 +198,7 @@
 
   .nav-link {
     text-decoration: none;
-    color: #555;
+    color: var(--nav-link);
     font-weight: 500;
     padding: 0.5rem 0;
     position: relative;
@@ -190,7 +211,7 @@
     left: 0;
     width: 100%;
     height: 2px;
-    background-color: #007bff;
+    background-color: var(--nav-link-active);
   }
 
   .auth-section {
@@ -214,7 +235,7 @@
 
   .username {
     font-size: 0.9rem;
-    color: #333;
+    color: var(--text);
     max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -226,12 +247,28 @@
     border-radius: 4px;
     font-weight: 500;
     cursor: pointer;
-    background-color: #dc3545;
-    color: white;
+    background-color: var(--button-bg);
+    color: var(--button-text);
     transition: all 0.2s ease;
   }
 
   .auth-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .mode-toggle {
+    padding: 0.45rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    background-color: var(--mode-toggle-bg);
+    color: var(--mode-toggle-text);
+    transition: all 0.2s ease;
+  }
+
+  .mode-toggle:hover {
     opacity: 0.9;
     transform: translateY(-1px);
   }
@@ -242,13 +279,13 @@
     left: 1rem;
     width: 48px;
     height: 48px;
-    background-color: #007bff;
+    background-color: var(--nav-link-active);
     border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 6px var(--mobile-menu-shadow);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 20;
+    z-index: 9999;
     cursor: pointer;
   }
 
@@ -258,12 +295,16 @@
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.75rem;
-    background-color: #333;
-    color: white;
+    background-color: var(--text);
+    color: var(--background);
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     opacity: 0;
     transition: opacity 0.2s ease;
+  }
+
+  .nav-dot:hover .dot-tooltip {
+    opacity: 1;
   }
 
   .mobile-overlay {
@@ -272,7 +313,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: var(--mobile-overlay-bg);
     z-index: 15;
     display: flex;
     justify-content: flex-start;
@@ -280,7 +321,7 @@
   }
 
   .mobile-menu {
-    background-color: #fff;
+    background-color: var(--mobile-menu-bg);
     width: 85%;
     max-width: 300px;
     height: 100%;
@@ -289,7 +330,7 @@
     flex-direction: column;
     gap: 1.5rem;
     z-index: 20;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 0 8px var(--mobile-menu-shadow);
   }
 
   @media (max-width: 768px) {

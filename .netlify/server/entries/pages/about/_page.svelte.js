@@ -1,4 +1,4 @@
-import { S as fallback, I as escape_html, J as bind_props, C as pop, z as push, T as spread_props } from "../../../chunks/index.js";
+import { R as fallback, K as escape_html, S as bind_props, C as pop, z as push, T as spread_props } from "../../../chunks/index.js";
 import { o as onDestroy } from "../../../chunks/index-server.js";
 import "../../../chunks/supabase.js";
 import "../../../chunks/client.js";

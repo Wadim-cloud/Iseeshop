@@ -44,7 +44,11 @@
 	},
 	"dependencies": {
 		"@supabase/supabase-js": "^2.47.14",
+		"@threlte/core": "^8.0.2",
+		"@threlte/extras": "^9.1.4",
+		"mode-watcher": "^1.0.2",
 		"node-fetch": "^3.3.2",
+		"sanitize-html": "^2.16.0",
 		"three": "^0.174.0"
 	}
 }

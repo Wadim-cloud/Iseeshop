@@ -3,7 +3,9 @@
   import { cartStore, cartSize, cartActions } from '$lib/gallery/stores';
   import { completePurchase, type BuyerInfo } from '$lib/gallery/CheckoutService';
   import { goto } from '$app/navigation';
-  
+  import { writable } from 'svelte/store';
+  import sanitizeHtml from 'sanitize-html'; // For input sanitization
+
   // Available 3D objects
   const objects3D = [
     { id: 'mug', name: 'Coffee Mug', price: 19.99, image: '/images/objects/mug.jpg' },
@@ -12,15 +14,14 @@
     { id: 'phonecase', name: 'Phone Case', price: 29.99, image: '/images/objects/phonecase.jpg' },
     { id: 'pillow', name: 'Throw Pillow', price: 34.99, image: '/images/objects/pillow.jpg' }
   ];
-  
-  // Make selectedObjects a reactive store
-  import { writable } from 'svelte/store';
+
+  // Reactive store for selected objects
   const selectedObjects = writable<Record<string, string>>({});
-  
-  // Track which step of checkout we're on
+
+  // Track checkout step
   let checkoutStep: 'product-selection' | 'shipping-info' | 'success' = 'product-selection';
-  
-  // Buyer information for shipping step
+
+  // Buyer information
   let buyerInfo: BuyerInfo = {
     name: '',
     email: '',
@@ -30,19 +31,31 @@
     zipCode: '',
     country: ''
   };
-  
+
   let isSubmitting = false;
-  let error: string | null = null;
+  let errors: Record<string, string> = {};
   let orderId: string | undefined;
-  
+
   // Check if cart is empty
   $: isEmpty = $cartStore.length === 0;
-  
+
   // Calculate total price
   $: totalAmount = calculateTotal();
-  
-  onMount(() => {
-    // Pre-populate selected objects if cart is not empty
+
+  // Consolidated onMount
+  onMount(async () => {
+    // Fetch user profile
+    try {
+      const userProfile = await getUserProfile();
+      if (userProfile?.email) {
+        buyerInfo.email = userProfile.email;
+        buyerInfo.name = userProfile.name || userProfile.email.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase());
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+
+    // Initialize cart
     if ($cartStore.length > 0) {
       $cartStore.forEach(item => {
         selectedObjects.update(current => {
@@ -58,11 +71,11 @@
       goto('/gallery');
     }
 
-    // Debug: Log cart and selected objects
+    // Debug logs
     console.log('Cart Store:', $cartStore);
     console.log('Selected Objects:', $selectedObjects);
   });
-  
+
   // Update cart item with selected 3D object
   function updateSelection(drawingId: string, objectId: string) {
     selectedObjects.update(current => {
@@ -72,73 +85,113 @@
     cartActions.updateCartItem(drawingId, { selected3DObject: objectId });
     console.log(`Updated selection for drawing ${drawingId}: ${objectId}`);
   }
-  
+
   // Remove item from cart
   function removeItem(drawingId: string) {
     cartActions.removeFromCart(drawingId);
     selectedObjects.update(current => {
-            return current;
+      delete current[drawingId];
+      return current;
     });
     if ($cartStore.length === 0) {
       goto('/gallery');
     }
   }
-  
+
+  // Calculate total price
   function calculateTotal() {
-  let total = 0;
-  $cartStore.forEach(item => {
-    const objectId = item.selected3DObject;
-    const object = objects3D.find(obj => obj.id === objectId);
-    if (object) {
-      total += object.price;
-    } else {
-      console.warn(`No object found for drawing ${item.drawingId}, objectId: ${objectId}`);
-    }
-  });
-  console.log('Calculated total:', total);
-  return total;
-}
-function updateTotals() {
-  totalAmount = calculateTotal();
-  console.log('Totals updated:', totalAmount);
-}
+    let total = 0;
+    $cartStore.forEach(item => {
+      const objectId = item.selected3DObject;
+      const object = objects3D.find(obj => obj.id === objectId);
+      if (object) {
+        total += object.price;
+      } else {
+        console.warn(`No object found for drawing ${item.drawingId}, objectId: ${objectId}`);
+      }
+    });
+    console.log('Calculated total:', total);
+    return total;
+  }
+
+  // Update totals (redundant with reactive $: totalAmount, but kept for button action)
+  function updateTotals() {
+    totalAmount = calculateTotal();
+    console.log('Totals updated:', totalAmount);
+  }
+
   // Go to shipping info step
   function goToShippingInfo() {
     checkoutStep = 'shipping-info';
   }
-  
-  // Process the checkout
+
+  // Validate buyer info
+  function validateBuyerInfo(info: BuyerInfo): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!info.name.trim()) errors.name = 'Full name is required';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) errors.email = 'Invalid email address';
+    if (!info.address.trim()) errors.address = 'Street address is required';
+    if (!info.city.trim()) errors.city = 'City is required';
+    if (!info.state.trim()) errors.state = 'State/Province is required';
+    if (!info.zipCode.trim()) errors.zipCode = 'Zip/Postal code is required';
+    if (!info.country.trim()) errors.country = 'Country is required';
+    return errors;
+  }
+
+  // Sanitize buyer info
+  function sanitizeBuyerInfo(info: BuyerInfo): BuyerInfo {
+    return {
+      name: sanitizeHtml(info.name),
+      email: sanitizeHtml(info.email),
+      address: sanitizeHtml(info.address),
+      city: sanitizeHtml(info.city),
+      state: sanitizeHtml(info.state),
+      zipCode: sanitizeHtml(info.zipCode),
+      country: sanitizeHtml(info.country)
+    };
+  }
+
+  // Process checkout
   async function handleSubmit() {
     isSubmitting = true;
-    error = null;
-    
+    errors = {};
+
+    // Client-side validation
+    errors = validateBuyerInfo(buyerInfo);
+    if (Object.keys(errors).length > 0) {
+      isSubmitting = false;
+      const firstInvalid = document.querySelector('input:invalid, input[aria-invalid="true"]');
+      if (firstInvalid) firstInvalid.focus();
+      return;
+    }
+
     try {
-      const result = await completePurchase(buyerInfo);
+      const sanitizedInfo = sanitizeBuyerInfo(buyerInfo);
+      const result = await completePurchase(sanitizedInfo);
       if (result.success) {
         checkoutStep = 'success';
         orderId = result.orderId;
       } else {
-        error = result.error || 'Purchase failed';
+        errors.general = result.error || 'Purchase failed';
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : 'An unexpected error occurred';
+      errors.general = err instanceof Error ? err.message : 'An unexpected error occurred';
     } finally {
       isSubmitting = false;
     }
   }
-  
-  // Go back to product selection step
+
+  // Go back to product selection
   function goBackToProductSelection() {
     checkoutStep = 'product-selection';
   }
-  
+
   // Go back to gallery
   function goBackToGallery() {
     goto('/gallery');
   }
 </script>
 
-<!-- HTML remains unchanged -->
 <svelte:head>
   <title>Checkout | Pexos</title>
   <meta name="description" content="Complete your order" />
@@ -154,7 +207,7 @@ function updateTotals() {
       Order Complete
     {/if}
   </h1>
-  
+
   {#if isEmpty}
     <div class="empty-checkout">
       <p>Your cart is empty.</p>
@@ -167,20 +220,24 @@ function updateTotals() {
           <div class="checkout-item">
             <div class="item-image">
               <img src={item.imageData} alt="Drawing preview" />
-              <button class="remove-button" on:click={() => removeItem(item.drawingId)}>
+              <button class="remove-button" on:click={() => removeItem(item.drawingId)} aria-label="Remove item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M18 6L6 18M6 6l12 12"/>
+                  <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            
+
             <div class="item-options">
               <h3>Select 3D Object</h3>
               <div class="objects-grid">
                 {#each objects3D as object}
-                  <div 
+                  <div
                     class="object-option {$selectedObjects[item.drawingId] === object.id ? 'selected' : ''}"
                     on:click={() => updateSelection(item.drawingId, object.id)}
+                    role="button"
+                    tabindex="0"
+                    on:keydown={e => e.key === 'Enter' && updateSelection(item.drawingId, object.id)}
+                    aria-label={`Select ${object.name}`}
                   >
                     <div class="object-image">
                       <div class="object-placeholder">
@@ -194,7 +251,7 @@ function updateTotals() {
                   </div>
                 {/each}
               </div>
-              
+
               <div class="preview-section">
                 <h4>Preview</h4>
                 <div class="preview-3d">
@@ -213,7 +270,7 @@ function updateTotals() {
           </div>
         {/each}
       </div>
-      
+
       <div class="checkout-summary">
         <h2>Order Summary</h2>
         <div class="summary-items">
@@ -225,12 +282,12 @@ function updateTotals() {
             </div>
           {/each}
         </div>
-        
+
         <div class="summary-total">
           <span>Total</span>
           <span>${totalAmount.toFixed(2)}</span>
         </div>
-        
+
         <div class="checkout-actions">
           <button class="back-button" on:click={goBackToGallery}>Continue Shopping</button>
           <button class="update-totals-button" on:click={updateTotals}>Update Totals</button>
@@ -241,7 +298,7 @@ function updateTotals() {
   {:else if checkoutStep === 'shipping-info'}
     <div class="cart-summary">
       <h2>Order Summary</h2>
-      
+
       <div class="summary-items">
         {#each $cartStore as item}
           {@const selectedObject = objects3D.find(obj => obj.id === $selectedObjects[item.drawingId])}
@@ -254,99 +311,147 @@ function updateTotals() {
           </div>
         {/each}
       </div>
-      
+
       <div class="summary-total">
         <span>Total ({$cartSize} items):</span>
         <span class="total-amount">${totalAmount.toFixed(2)}</span>
       </div>
     </div>
-    
+
     <div class="checkout-form">
-      <h2>Shipping Information</h2>
-      
-      {#if error}
-        <div class="error-message">{error}</div>
+      <h2 id="shipping-info-heading">Shipping Information</h2>
+
+      {#if errors.general}
+        <div class="error-message" aria-live="polite">{errors.general}</div>
       {/if}
-      
-      <form on:submit|preventDefault={handleSubmit}>
+
+      <form on:submit|preventDefault={handleSubmit} aria-labelledby="shipping-info-heading">
         <div class="form-group">
           <label for="name">Full Name</label>
-          <input 
-            type="text" 
-            id="name" 
-            bind:value={buyerInfo.name} 
+          <input
+            type="text"
+            id="name"
+            bind:value={buyerInfo.name}
             required
+            autocomplete="name"
+            aria-invalid={errors.name ? 'true' : 'false'}
+            aria-describedby={errors.name ? 'name-error' : undefined}
           />
+          {#if errors.name}
+            <span id="name-error" class="error-text">{errors.name}</span>
+          {/if}
         </div>
-        
+
         <div class="form-group">
           <label for="email">Email Address</label>
-          <input 
-            type="email" 
-            id="email" 
-            bind:value={buyerInfo.email} 
+          <input
+            type="email"
+            id="email"
+            bind:value={buyerInfo.email}
             required
+            autocomplete="email"
+            aria-invalid={errors.email ? 'true' : 'false'}
+            aria-describedby={errors.email ? 'email-error' : undefined}
           />
+          {#if errors.email}
+            <span id="email-error" class="error-text">{errors.email}</span>
+          {/if}
         </div>
-        
+
         <div class="form-group">
           <label for="address">Street Address</label>
-          <input 
-            type="text" 
-            id="address" 
-            bind:value={buyerInfo.address} 
+          <input
+            type="text"
+            id="address"
+            bind:value={buyerInfo.address}
             required
+            autocomplete="street-address"
+            aria-invalid={errors.address ? 'true' : 'false'}
+            aria-describedby={errors.address ? 'address-error' : undefined}
           />
+          {#if errors.address}
+            <span id="address-error" class="error-text">{errors.address}</span>
+          {/if}
         </div>
-        
+
         <div class="form-row">
           <div class="form-group">
             <label for="city">City</label>
-            <input 
-              type="text" 
-              id="city" 
-              bind:value={buyerInfo.city} 
+            <input
+              type="text"
+              id="city"
+              bind:value={buyerInfo.city}
               required
+              autocomplete="address-level2"
+              aria-invalid={errors.city ? 'true' : 'false'}
+              aria-describedby={errors.city ? 'city-error' : undefined}
             />
+            {#if errors.city}
+              <span id="city-error" class="error-text">{errors.city}</span>
+            {/if}
           </div>
-          
+
           <div class="form-group">
             <label for="state">State/Province</label>
-            <input 
-              type="text" 
-              id="state" 
-              bind:value={buyerInfo.state} 
+            <input
+              type="text"
+              id="state"
+              bind:value={buyerInfo.state}
               required
+              autocomplete="address-level1"
+              aria-invalid={errors.state ? 'true' : 'false'}
+              aria-describedby={errors.state ? 'state-error' : undefined}
             />
+            {#if errors.state}
+              <span id="state-error" class="error-text">{errors.state}</span>
+            {/if}
           </div>
         </div>
-        
+
         <div class="form-row">
           <div class="form-group">
             <label for="zipCode">Zip/Postal Code</label>
-            <input 
-              type="text" 
-              id="zipCode" 
-              bind:value={buyerInfo.zipCode} 
+            <input
+              type="text"
+              id="zipCode"
+              bind:value={buyerInfo.zipCode}
               required
+              pattern="[0-9]{5}(-[0-9]{4})?"
+              title="Enter a valid ZIP code (e.g., 12345 or 12345-6789)"
+              autocomplete="postal-code"
+              aria-invalid={errors.zipCode ? 'true' : 'false'}
+              aria-describedby={errors.zipCode ? 'zipCode-error' : undefined}
             />
+            {#if errors.zipCode}
+              <span id="zipCode-error" class="error-text">{errors.zipCode}</span>
+            {/if}
           </div>
-          
+
           <div class="form-group">
             <label for="country">Country</label>
-            <input 
-              type="text" 
-              id="country" 
-              bind:value={buyerInfo.country} 
+            <input
+              type="text"
+              id="country"
+              bind:value={buyerInfo.country}
               required
+              autocomplete="country-name"
+              aria-invalid={errors.country ? 'true' : 'false'}
+              aria-describedby={errors.country ? 'country-error' : undefined}
             />
+            {#if errors.country}
+              <span id="country-error" class="error-text">{errors.country}</span>
+            {/if}
           </div>
         </div>
-        
+
         <div class="form-actions">
           <button type="button" class="secondary-button" on:click={goBackToProductSelection}>Back to Products</button>
           <button type="submit" class="primary-button" disabled={isSubmitting}>
-            {isSubmitting ? 'Processing...' : `Complete Purchase - $${totalAmount.toFixed(2)}`}
+            {#if isSubmitting}
+              <span class="spinner"></span> Processing...
+            {:else}
+              Complete Purchase - ${totalAmount.toFixed(2)}
+            {/if}
           </button>
         </div>
       </form>
@@ -365,7 +470,7 @@ function updateTotals() {
   {/if}
 </div>
 
-<style>
+<style lang="scss">
   .checkout-container {
     width: 100%;
     max-width: 1200px;
