@@ -1,5 +1,5 @@
-export declare const likesStore: import("svelte/store").Writable<Record<number, number>>;
-import type { Drawing } from './GalleryContainer.svelte';
+import Drawing from './GalleryContainer.svelte';
+export declare const likesStore: import("svelte/store").Writable<Record<string, number>>;
 export type CartItem = {
     drawingId: string;
     imageData: string;

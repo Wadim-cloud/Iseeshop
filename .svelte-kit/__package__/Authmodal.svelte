@@ -11,6 +11,98 @@
   let loading: 'google' | 'github' | null = null;
   let error: string | null = null;
 
+  // Block grid setup
+  const gridCols = 10;
+  const gridRows = 5;
+
+  function createBlocks() {
+    return Array(50).fill().map((_, i) => ({
+      id: i,
+      isBlack: false,
+      isBlue: false,
+      isRed: false,
+      navigateTo: null
+    }));
+  }
+
+  let blocksGoogle = createBlocks();
+  let blocksGitHub = createBlocks();
+  let blackBlocksGoogle: number[] = [];
+  let blackBlocksGitHub: number[] = [];
+
+  function handleMouseMove(event, blocks, setBlocks) {
+    const navbar = event.currentTarget;
+    const rect = navbar.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const blockWidth = rect.width / gridCols;
+    const blockHeight = rect.height / gridRows;
+    const col = Math.floor(mouseX / blockWidth);
+    const row = Math.floor(mouseY / blockHeight);
+    const centerIndex = row * gridCols + col;
+
+    let updated = blocks.map(block => ({ ...block, isBlue: false }));
+
+    const distances = updated.map((block, index) => {
+      const blockRow = Math.floor(index / gridCols);
+      const blockCol = index % gridCols;
+      const distance = Math.sqrt((blockCol - col) ** 2 + (blockRow - row) ** 2);
+      return { index, distance };
+    });
+
+    distances.sort((a, b) => a.distance - b.distance);
+    const nearestThree = distances.slice(0, 3).map(d => d.index);
+
+    updated = updated.map((block, index) => ({
+      ...block,
+      isBlue: nearestThree.includes(index) && !block.isBlack
+    }));
+
+    if (centerIndex >= 0 && centerIndex < updated.length && !updated[centerIndex].isBlack) {
+      setTimeout(() => {
+        updated = updated.map((block, i) => ({
+          ...block,
+          isRed: i === centerIndex && !block.isBlack
+        }));
+        setBlocks([...updated]);
+        setTimeout(() => {
+          updated = updated.map((block, i) => ({
+            ...block,
+            isRed: i === centerIndex ? false : block.isRed
+          }));
+          setBlocks([...updated]);
+        }, 500);
+      }, 100);
+    }
+
+    setBlocks([...updated]);
+  }
+
+  function handleClick(index, blocks, setBlocks, blackBlocks, provider: 'google' | 'github') {
+    if (blackBlocks.length < 2 && !blocks[index].isBlack) {
+      const updated = blocks.map((block, i) => ({
+        ...block,
+        isBlack: i === index ? true : block.isBlack,
+        isBlue: i === index ? false : block.isBlue,
+        isRed: i === index ? false : block.isRed
+      }));
+
+      blackBlocks.push(index);
+      setBlocks([...updated]);
+
+      // Optional: Trigger provider login on first black block instead of navigation
+      if (blackBlocks.length === 1) {
+        handleProviderClick(provider);
+      }
+    }
+    // Removed navigation on black block click to avoid unintended redirects
+  }
+
+  function handleMouseLeave(setBlocks, blocks) {
+    setBlocks(blocks.map(block => ({ ...block, isBlue: false, isRed: false })));
+  }
+
   async function handleOAuthLogin(provider: 'google' | 'github') {
     loading = provider;
     error = null;
@@ -42,8 +134,6 @@
     selectedProvider = provider;
     handleOAuthLogin(provider);
   }
-
-  $: console.log('AuthModal show prop:', show);
 </script>
 
 {#if show}
@@ -74,7 +164,21 @@
           aria-label="Sign in with Google"
         >
           <span class="provider-icon">
-            <img src="chimp.jpg" alt="Google" class="provider-pictogram" />
+            <div
+              class="navbar"
+              on:mousemove={(e) => handleMouseMove(e, blocksGoogle, b => blocksGoogle = b)}
+              on:mouseleave={() => handleMouseLeave(b => blocksGoogle = b, blocksGoogle)}
+            >
+              {#each blocksGoogle as block (block.id)}
+                <div
+                  class="block"
+                  class:black={block.isBlack}
+                  class:blue={block.isBlue}
+                  class:red={block.isRed}
+                  on:click|stopPropagation={() => handleClick(block.id, blocksGoogle, b => blocksGoogle = b, blackBlocksGoogle, 'google')}
+                ></div>
+              {/each}
+            </div>
           </span>
           {#if loading === 'google'}
             <Spinner size="sm" color="white" />
@@ -90,7 +194,21 @@
           aria-label="Sign in with GitHub"
         >
           <span class="provider-icon">
-            <img src="frogger.jpg" alt="GitHub" class="provider-pictogram" />
+            <div
+              class="navbar alt-theme"
+              on:mousemove={(e) => handleMouseMove(e, blocksGitHub, b => blocksGitHub = b)}
+              on:mouseleave={() => handleMouseLeave(b => blocksGitHub = b, blocksGitHub)}
+            >
+              {#each blocksGitHub as block (block.id)}
+                <div
+                  class="block"
+                  class:black={block.isBlack}
+                  class:alt-blue={block.isBlue}
+                  class:alt-red={block.isRed}
+                  on:click|stopPropagation={() => handleClick(block.id, blocksGitHub, b => blocksGitHub = b, blackBlocksGitHub, 'github')}
+                ></div>
+              {/each}
+            </div>
           </span>
           {#if loading === 'github'}
             <Spinner size="sm" color="white" />
@@ -110,7 +228,6 @@
 {/if}
 
 <style>
-  /* Your existing styles remain unchanged */
   .modal-overlay {
     position: fixed;
     top: 0;
@@ -195,20 +312,44 @@
     box-shadow: 0 0 20px rgba(0, 123, 255, 0.4);
   }
 
+  .provider-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .provider-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 150px;
-    height: 150px;
+    width: 60px;
+    height: 15px;
   }
 
-  .provider-pictogram {
+  .navbar {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    filter: grayscale(100%) brightness(1000%);
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 0.5px;
+    background-color: rgba(0, 0, 0, 0.5);
   }
+
+  .block {
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: background-color 0.3s;
+  }
+
+  .block:hover {
+    cursor: pointer;
+  }
+
+  .blue { background-color: #007bff !important; }
+  .red { background-color: #ff0000 !important; }
+  .black { background-color: #000000 !important; }
+
+  .alt-blue { background-color: #00cccc !important; }
+  .alt-red { background-color: #ff8c00 !important; }
 
   .error-message {
     margin-top: 1rem;
@@ -228,6 +369,13 @@
     .provider-button {
       padding: 0.7rem 1.2rem;
       font-size: 0.95rem;
+    }
+    .provider-icon {
+      width: 40px;
+      height: 10px;
+    }
+    .navbar {
+      gap: 0.3px;
     }
   }
 </style>

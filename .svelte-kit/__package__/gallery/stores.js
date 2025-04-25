@@ -1,5 +1,7 @@
 // src/lib/gallery/stores.ts
 import { writable, get } from 'svelte/store';
+import Drawing from './GalleryContainer.svelte';
+// Likes store with string keys
 export const likesStore = writable({});
 export const cartStore = writable([]);
 // Helper functions for cart operations

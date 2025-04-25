@@ -13,19 +13,12 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     z_$$bindings?: Bindings;
 }
 declare const GalleryView: $$__sveltets_2_IsomorphicComponent<{
-    drawings: Drawing[];
-    onLike: (id: number) => void;
+    drawing: Drawing;
+    onLike: (id: string) => void;
     onPreview: (imageData: string) => void;
     on3DPreview: (imageData: string) => void;
-    loading: boolean;
-    error: string | null;
-    selectedDrawing: string | null;
-    selected3DDrawing: string | null;
-    onClosePreview: () => void;
-    onClose3DPreview: () => void;
+    onOpenComments: (drawingId: string, drawingUuid: string) => void;
 }, {
-    click: MouseEvent;
-} & {
     [evt: string]: CustomEvent<any>;
 }, {}, {}, string>;
 type GalleryView = InstanceType<typeof GalleryView>;

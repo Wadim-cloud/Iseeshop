@@ -88,7 +88,7 @@
   
     @media (max-width: 768px) {
       .controls {
-        top: 0.5rem;
+        top: 3rem;
         left: 9rem;
       }
   
