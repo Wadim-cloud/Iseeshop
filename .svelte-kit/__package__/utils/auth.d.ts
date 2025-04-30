@@ -1,9 +1,2 @@
-export type User = {
-    id: string;
-    email?: string;
-    user_metadata?: {
-        avatar_url?: string;
-        full_name?: string;
-    };
-} | null;
-export declare const user: import("svelte/store").Writable<User>;
+export declare const redirectIfError: (error: unknown) => void;
+export declare const validateSession: (session: Session | null) => boolean;

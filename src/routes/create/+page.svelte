@@ -219,6 +219,17 @@
 />
 
 <style>
+  /* Ensure DrawingControls is above the navbar and mobile menu */
+  :global(.drawing-controls) {
+    position: relative;
+    z-index: 1000; /* Higher than navbar's 999 (mobile-menu, nav-dot) */
+  }
+
+  /* Ensure DrawingMenu is above the navbar and mobile menu */
+  :global(.drawing-menu) {
+    position: relative;
+    z-index: 1000;
+  }
 
   /* Ensure Toast is above everything */
   :global(.toast) {

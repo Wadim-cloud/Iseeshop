@@ -12,8 +12,8 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     z_$$bindings?: Bindings;
 }
 declare const Tshirt: $$__sveltets_2_IsomorphicComponent<{
-    drawingData: string | null;
-    zoomLevel?: number;
+    drawingData?: string | null;
+    modelUrl?: string;
 }, {
     [evt: string]: CustomEvent<any>;
 }, {}, {}, string>;

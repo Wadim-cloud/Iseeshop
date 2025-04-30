@@ -1,18 +1,14 @@
-import adapter from '@sveltejs/adapter-netlify';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import adapter from '@sveltejs/adapter-static';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const config = {
+export default {
+  preprocess: vitePreprocess(),
   kit: {
-    adapter: adapter(),
-    alias: {
-      $components: path.resolve(__dirname, 'src/components'),
-      $lib: path.resolve(__dirname, 'src/lib'),
-      $styles: path.resolve(__dirname, 'src/styles'),
-    },
+    adapter: adapter({
+      pages: 'build',
+      assets: 'build',
+      precompress: false,
+      strict: true
+    })
   }
 };
-
-export default config;

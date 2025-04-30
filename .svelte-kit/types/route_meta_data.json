@@ -1,15 +1,26 @@
 {
-	"/": [],
-	"/about": [],
-	"/auth/callback": [],
+	"/": [
+		"src/routes/+layout.js",
+		"src/routes/+layout.js"
+	],
+	"/about": [
+		"src/routes/+layout.js"
+	],
+	"/auth/callback": [
+		"src/routes/+layout.js"
+	],
 	"/create": [
-		"src/routes/create/+page.server.ts"
+		"src/routes/create/+page.server.ts",
+		"src/routes/+layout.js"
 	],
 	"/gallery": [
-		"src/routes/gallery/+page.server.ts"
+		"src/routes/gallery/+page.server.ts",
+		"src/routes/+layout.js"
 	],
-	"/gallery/checkout": [],
-	"/playground": [],
-	"/shaders-filters": [],
-	"/todo": []
+	"/shaders-filters": [
+		"src/routes/+layout.js"
+	],
+	"/todo": [
+		"src/routes/+layout.js"
+	]
 }

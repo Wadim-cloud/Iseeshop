@@ -88,8 +88,8 @@
   
     @media (max-width: 768px) {
       .controls {
-        top: 3rem;
-        left: 9rem;
+        top: 0.5rem;
+        left: 0.5rem;
       }
   
       .control-button {

@@ -1,81 +1,61 @@
 <script lang="ts">
-  import GalleryGrid from './GalleryGrid.svelte';
+  import GalleryView from './GalleryView.svelte';
   import GalleryControls from './GalleryControls.svelte';
-  import ShoppingCart from './ShoppingCart.svelte';
   import { supabase } from '../supabase';
   import { writable } from 'svelte/store';
-  import { likesStore, cartStore, cartSize } from './stores';
-  import { onMount } from 'svelte';
+  import { likesStore } from './stores';
 
   // State management
   const drawings = writable<Drawing[]>([]);
   const error = writable<string | null>(null);
   const loading = writable(false);
-  const showCart = writable(false);
+  const selectedDrawing = writable<string | null>(null);
+  const selected3DDrawing = writable<string | null>(null); // New state for 3D preview
   const pagination = writable({
     currentPage: 1,
     totalPages: 1,
-    itemsPerPage: 42
+    itemsPerPage: 40
   });
 
   // Types
   export type Drawing = {
-    id: string;
-    drawing_id: string;
+    id: number;
     image_data: string;
     likes: number;
     created_at: string;
-    comments: { user_id: string; content: string; created_at: string }[];
-    user_id: string;
-    user_email: string;
-    blocked: boolean;
   };
 
+  // Fetch drawings with pagination
   async function fetchDrawings(page: number) {
     loading.set(true);
     error.set(null);
-
-    const { itemsPerPage } = $pagination;
+    
+    const { currentPage, itemsPerPage } = $pagination;
     const offset = (page - 1) * itemsPerPage;
 
     try {
       const { data, count, error: fetchError } = await supabase
         .from('drawings')
-        .select('id, drawing_id, image_data, likes, created_at, comments, user_id, user_email, blocked', { count: 'exact' })
+        .select('id, image_data, likes, created_at', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + itemsPerPage - 1);
 
       if (fetchError) throw fetchError;
 
-      const processedData = await Promise.all(
-        (data || []).map(async (drawing) => {
-          console.log('Fetched drawing:', { id: drawing.id, drawing_id: drawing.drawing_id });
-          if (drawing.image_data.startsWith('drawings/')) {
-            const { data: signedData, error: signedError } = await supabase.storage
-              .from('drawings')
-              .createSignedUrl(drawing.image_data, 3600);
-            if (signedError) {
-              console.error('Signed URL error:', signedError);
-              return drawing;
-            }
-            return { ...drawing, image_data: signedData.signedUrl };
-          }
-          return drawing;
-        })
-      );
-
-      drawings.set(processedData);
+      drawings.set(data || []);
       pagination.update(p => ({
         ...p,
         currentPage: page,
         totalPages: Math.ceil((count || 0) / itemsPerPage)
       }));
 
+      // Update likes store
       likesStore.update(current => {
-        const newLikes = { ...current };
-        processedData.forEach(drawing => (newLikes[drawing.drawing_id] = drawing.likes));
+        const newLikes = {...current};
+        data?.forEach(drawing => newLikes[drawing.id] = drawing.likes);
         return newLikes;
       });
+
     } catch (err) {
       error.set(err instanceof Error ? err.message : 'Failed to load drawings');
       console.error('Gallery error:', err);
@@ -84,53 +64,46 @@
     }
   }
 
-  async function handleLike(drawingId: string) {
-    console.log('GalleryContainer handleLike called with drawingId:', drawingId);
-    const previousLikes = $likesStore[drawingId] || 0;
-
-    likesStore.update(current => ({
-      ...current,
-      [drawingId]: previousLikes + 1
-    }));
-    drawings.update(current =>
-      current.map(d =>
-        d.drawing_id === drawingId ? { ...d, likes: previousLikes + 1 } : d
-      )
-    );
+  // Handle like action
+  async function handleLike(drawingId: number) {
+    likesStore.update(current => {
+      const newLikes = {...current};
+      newLikes[drawingId] = (newLikes[drawingId] || 0) + 1;
+      return newLikes;
+    });
 
     try {
       await supabase
         .from('drawings')
-        .update({ likes: previousLikes + 1 })
-        .eq('drawing_id', drawingId)
-        .throwOnError();
+        .update({ likes: $likesStore[drawingId] })
+        .eq('id', drawingId);
     } catch (err) {
       console.error('Like update failed:', err);
-      likesStore.update(current => ({
-        ...current,
-        [drawingId]: previousLikes
-      }));
-      drawings.update(current =>
-        current.map(d =>
-          d.drawing_id === drawingId ? { ...d, likes: previousLikes } : d
-        )
-      );
-      error.set('Failed to update like. Please try again.');
+      // Rollback like on error
+      likesStore.update(current => {
+        const newLikes = {...current};
+        newLikes[drawingId] = (newLikes[drawingId] || 1) - 1;
+        return newLikes;
+      });
     }
   }
 
-  onMount(() => {
-    fetchDrawings(1);
-  });
+  // Initial load
+  fetchDrawings(1);
 </script>
 
 <div class="gallery-container">
-  <GalleryGrid
+  <GalleryView
     drawings={$drawings}
     loading={$loading}
     error={$error}
+    selectedDrawing={$selectedDrawing}
+    selected3DDrawing={$selected3DDrawing}
     onLike={handleLike}
-    onPageChange={fetchDrawings}
+    onPreview={(img) => selectedDrawing.set(img)}
+    on3DPreview={(img) => selected3DDrawing.set(img)}
+    onClosePreview={() => selectedDrawing.set(null)}
+    onClose3DPreview={() => selected3DDrawing.set(null)}
   />
 
   <GalleryControls
@@ -138,8 +111,6 @@
     totalPages={$pagination.totalPages}
     onPageChange={fetchDrawings}
   />
-  
-  <ShoppingCart showCart={$showCart} />
 </div>
 
 <style>
@@ -148,6 +119,5 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem 1rem;
-    position: relative;
   }
 </style>

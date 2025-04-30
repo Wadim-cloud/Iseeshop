@@ -1136,12 +1136,16 @@ function process_effects(root) {
       } else if (is_branch) {
         effect2.f ^= CLEAN;
       } else {
+        var previous_active_reaction = active_reaction;
         try {
+          active_reaction = effect2;
           if (check_dirtiness(effect2)) {
             update_effect(effect2);
           }
         } catch (error) {
           handle_error(error, effect2, null, effect2.ctx);
+        } finally {
+          active_reaction = previous_active_reaction;
         }
       }
       var child = effect2.first;
@@ -1257,9 +1261,6 @@ function attr(name, value, is_boolean = false) {
 const whitespace = [..." 	\n\r\f \v\uFEFF"];
 function to_class(value, hash, directives) {
   var classname = value == null ? "" : "" + value;
-  if (hash) {
-    classname = classname ? classname + " " + hash : hash;
-  }
   if (directives) {
     for (var key in directives) {
       if (directives[key]) {
@@ -1286,7 +1287,6 @@ function to_style(value, styles) {
 function subscribe_to_store(store, run, invalidate) {
   if (store == null) {
     run(void 0);
-    if (invalidate) invalidate(void 0);
     return noop;
   }
   const unsub = untrack(
@@ -1477,6 +1477,15 @@ function unsubscribe_stores(store_values) {
     store_values[store_name][1]();
   }
 }
+function slot(payload, $$props, name, slot_props, fallback_fn) {
+  var slot_fn = $$props.$$slots?.[name];
+  if (slot_fn === true) {
+    slot_fn = $$props["children"];
+  }
+  if (slot_fn !== void 0) {
+    slot_fn(payload, slot_props);
+  }
+}
 function bind_props(props_parent, props_now) {
   for (const key in props_now) {
     const initial_value = props_parent[key];
@@ -1496,30 +1505,30 @@ export {
   setContext as A,
   BROWSER as B,
   pop as C,
-  copy_payload as D,
-  assign_payload as E,
-  bind_props as F,
-  ensure_array_like as G,
+  getContext as D,
+  ensure_array_like as E,
+  attr as F,
+  attr_class as G,
   HYDRATION_ERROR as H,
-  attr_class as I,
-  store_get as J,
-  attr as K,
+  escape_html as I,
+  bind_props as J,
+  store_set as K,
   LEGACY_PROPS as L,
-  unsubscribe_stores as M,
-  head as N,
-  getContext as O,
-  escape_html as P,
-  fallback as Q,
-  spread_props as R,
-  attr_style as S,
-  stringify as T,
-  store_set as U,
-  store_mutate as V,
-  current_component as W,
-  noop as X,
-  safe_not_equal as Y,
-  subscribe_to_store as Z,
-  run_all as _,
+  head as M,
+  store_get as N,
+  slot as O,
+  unsubscribe_stores as P,
+  copy_payload as Q,
+  assign_payload as R,
+  spread_props as S,
+  fallback as T,
+  attr_style as U,
+  stringify as V,
+  store_mutate as W,
+  current_component as X,
+  noop as Y,
+  safe_not_equal as Z,
+  subscribe_to_store as _,
   set_active_effect as a,
   active_effect as b,
   active_reaction as c,

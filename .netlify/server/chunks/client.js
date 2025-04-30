@@ -1,6 +1,6 @@
 import "clsx";
 import { w as writable } from "./exports.js";
-import { X as noop } from "./index.js";
+import { Y as noop } from "./index.js";
 function get(key, parse = JSON.parse) {
   try {
     return parse(sessionStorage[key]);
@@ -37,6 +37,12 @@ get(SNAPSHOT_KEY) ?? {};
 const stores = {
   updated: /* @__PURE__ */ create_updated_store()
 };
+function goto(url, opts = {}) {
+  {
+    throw new Error("Cannot call goto(...) on the server");
+  }
+}
 export {
+  goto as g,
   stores as s
 };

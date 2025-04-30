@@ -8,31 +8,19 @@
       "_internal.js"
     ]
   },
-  "_Authmodal.svelte_svelte_type_style_lang.js": {
-    "file": "_app/immutable/assets/Authmodal.Ca3FhecW.css",
-    "src": "_Authmodal.svelte_svelte_type_style_lang.js"
-  },
   "_CanvasShader.svelte_svelte_type_style_lang.js": {
     "file": "_app/immutable/assets/CanvasShader.DGCYF2tG.css",
     "src": "_CanvasShader.svelte_svelte_type_style_lang.js"
   },
-  "_GalleryContainer.svelte_svelte_type_style_lang.js": {
-    "file": "chunks/GalleryContainer.svelte_svelte_type_style_lang.js",
-    "name": "GalleryContainer.svelte_svelte_type_style_lang",
+  "_Floating3DModel.js": {
+    "file": "chunks/Floating3DModel.js",
+    "name": "Floating3DModel",
     "imports": [
-      "_exports.js",
-      "_supabase.js"
+      "_index.js",
+      "_index-server.js"
     ],
     "css": [
-      "_app/immutable/assets/GalleryContainer.B9luv9To.css"
-    ]
-  },
-  "_auth.js": {
-    "file": "chunks/auth.js",
-    "name": "auth",
-    "imports": [
-      "_exports.js",
-      "_supabase.js"
+      "_app/immutable/assets/Floating3DModel.BnJRNIkG.css"
     ]
   },
   "_client.js": {
@@ -108,8 +96,7 @@
       "_exports.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.DvM4Y3Kg.css",
-      "_app/immutable/assets/Authmodal.Ca3FhecW.css"
+      "_app/immutable/assets/_layout.MI5BRfEF.css"
     ]
   },
   "src/routes/+page.svelte": {
@@ -120,13 +107,11 @@
     "imports": [
       "_index.js",
       "_client.js",
-      "_supabase.js",
-      "_auth.js"
+      "_supabase.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.CmxtMLLH.css",
-      "_app/immutable/assets/CanvasShader.DGCYF2tG.css",
-      "_app/immutable/assets/Authmodal.Ca3FhecW.css"
+      "_app/immutable/assets/_page.KnZycZjH.css",
+      "_app/immutable/assets/CanvasShader.DGCYF2tG.css"
     ]
   },
   "src/routes/about/+page.svelte": {
@@ -136,12 +121,12 @@
     "isEntry": true,
     "imports": [
       "_index.js",
-      "_index-server.js",
+      "_Floating3DModel.js",
       "_supabase.js",
       "_client.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.Db7Fs4fF.css"
+      "_app/immutable/assets/_page.CAukgFy0.css"
     ]
   },
   "src/routes/auth/callback/+page.svelte": {
@@ -173,7 +158,7 @@
       "_index-server.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.Ccd5vFxc.css",
+      "_app/immutable/assets/_page.CKK3cO4k.css",
       "_app/immutable/assets/CanvasShader.DGCYF2tG.css"
     ]
   },
@@ -191,43 +176,12 @@
     "imports": [
       "_index.js",
       "_client.js",
-      "_GalleryContainer.svelte_svelte_type_style_lang.js",
-      "_index-server.js",
-      "_supabase.js",
-      "_auth.js",
-      "_exports.js"
-    ],
-    "css": [
-      "_app/immutable/assets/_page.Kidz1IVV.css",
-      "_app/immutable/assets/Authmodal.Ca3FhecW.css"
-    ]
-  },
-  "src/routes/gallery/checkout/+page.svelte": {
-    "file": "entries/pages/gallery/checkout/_page.svelte.js",
-    "name": "entries/pages/gallery/checkout/_page.svelte",
-    "src": "src/routes/gallery/checkout/+page.svelte",
-    "isEntry": true,
-    "imports": [
-      "_index.js",
-      "_GalleryContainer.svelte_svelte_type_style_lang.js",
-      "_supabase.js",
       "_exports.js",
-      "_client.js"
+      "_Floating3DModel.js",
+      "_supabase.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.BU69CtnZ.css"
-    ]
-  },
-  "src/routes/playground/+page.svelte": {
-    "file": "entries/pages/playground/_page.svelte.js",
-    "name": "entries/pages/playground/_page.svelte",
-    "src": "src/routes/playground/+page.svelte",
-    "isEntry": true,
-    "imports": [
-      "_index.js"
-    ],
-    "css": [
-      "_app/immutable/assets/_page.C9Pc5rg0.css"
+      "_app/immutable/assets/_page.BuaVk01n.css"
     ]
   },
   "src/routes/shaders-filters/+page.svelte": {

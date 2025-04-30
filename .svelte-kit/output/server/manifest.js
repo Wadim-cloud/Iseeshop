@@ -7,89 +7,18 @@ function __memo(fn) {
 return {
 	appDir: "_app",
 	appPath: "_app",
-	assets: new Set(["chimp.jpg","favicon.png","fonts/Inter_18pt-ExtraBold.ttf","fonts/Inter_18pt-ExtraLight.ttf","fonts/Inter_18pt-Light.ttf","fonts/Inter_18pt-Medium.ttf","fonts/Inter_18pt-Regular.ttf","fonts/Stanley.otf","frogger.jpg","logo192.png","models/Dobbelsteen.stl","models/test.stl","models/tshirt.stl","texture/boom.png","_redirects"]),
-	mimeTypes: {".jpg":"image/jpeg",".png":"image/png",".ttf":"font/ttf",".otf":"font/otf",".stl":"model/stl"},
+	assets: new Set(["favicon.png","logo192.png","models/Dobbelsteen.stl","models/test.stl","models/tshirt.stl","texture/boom.png","_redirects"]),
+	mimeTypes: {".png":"image/png",".stl":"model/stl"},
 	_: {
-		client: {start:"_app/immutable/entry/start.B3tPzYNT.js",app:"_app/immutable/entry/app.BWT1pz71.js",imports:["_app/immutable/entry/start.B3tPzYNT.js","_app/immutable/chunks/IbqXbPHK.js","_app/immutable/chunks/Bxdg7ccW.js","_app/immutable/chunks/Cq64pHAR.js","_app/immutable/entry/app.BWT1pz71.js","_app/immutable/chunks/C1FmrZbK.js","_app/immutable/chunks/Bxdg7ccW.js","_app/immutable/chunks/6og0jn-Y.js","_app/immutable/chunks/B2hSDNwb.js","_app/immutable/chunks/Bqnn9XxY.js","_app/immutable/chunks/C7mBFiPQ.js","_app/immutable/chunks/Czyh_-as.js","_app/immutable/chunks/CP6E_JcI.js","_app/immutable/chunks/Cq64pHAR.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.DjESe4Sj.js",app:"_app/immutable/entry/app.uZNzDvfK.js",imports:["_app/immutable/entry/start.DjESe4Sj.js","_app/immutable/chunks/BimYdWYP.js","_app/immutable/chunks/BDHGhfTE.js","_app/immutable/chunks/DH2AK175.js","_app/immutable/entry/app.uZNzDvfK.js","_app/immutable/chunks/C1FmrZbK.js","_app/immutable/chunks/BDHGhfTE.js","_app/immutable/chunks/CTjs_13Y.js","_app/immutable/chunks/CvTsB6m-.js","_app/immutable/chunks/DPmhzSt5.js","_app/immutable/chunks/1K336M6a.js","_app/immutable/chunks/RZ2m-Vl7.js","_app/immutable/chunks/ChMpMzq7.js","_app/immutable/chunks/DH2AK175.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('./nodes/0.js')),
-			__memo(() => import('./nodes/1.js')),
-			__memo(() => import('./nodes/2.js')),
-			__memo(() => import('./nodes/3.js')),
-			__memo(() => import('./nodes/4.js')),
-			__memo(() => import('./nodes/5.js')),
-			__memo(() => import('./nodes/6.js')),
-			__memo(() => import('./nodes/7.js')),
-			__memo(() => import('./nodes/8.js')),
-			__memo(() => import('./nodes/9.js')),
-			__memo(() => import('./nodes/10.js'))
+			__memo(() => import('./nodes/1.js'))
 		],
 		routes: [
-			{
-				id: "/",
-				pattern: /^\/$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 2 },
-				endpoint: null
-			},
-			{
-				id: "/about",
-				pattern: /^\/about\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 3 },
-				endpoint: null
-			},
-			{
-				id: "/auth/callback",
-				pattern: /^\/auth\/callback\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 4 },
-				endpoint: null
-			},
-			{
-				id: "/create",
-				pattern: /^\/create\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 5 },
-				endpoint: null
-			},
-			{
-				id: "/gallery",
-				pattern: /^\/gallery\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 6 },
-				endpoint: null
-			},
-			{
-				id: "/gallery/checkout",
-				pattern: /^\/gallery\/checkout\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 7 },
-				endpoint: null
-			},
-			{
-				id: "/playground",
-				pattern: /^\/playground\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 8 },
-				endpoint: null
-			},
-			{
-				id: "/shaders-filters",
-				pattern: /^\/shaders-filters\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 9 },
-				endpoint: null
-			},
-			{
-				id: "/todo",
-				pattern: /^\/todo\/?$/,
-				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 10 },
-				endpoint: null
-			}
+			
 		],
-		prerendered_routes: new Set([]),
+		prerendered_routes: new Set(["/","/about","/auth/callback","/create","/create/__data.json","/gallery","/gallery/__data.json","/shaders-filters","/todo"]),
 		matchers: async () => {
 			
 			return {  };

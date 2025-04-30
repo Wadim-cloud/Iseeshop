@@ -1,4 +1,4 @@
-import { Q as fallback, G as ensure_array_like, K as attr, P as escape_html, F as bind_props, C as pop, z as push } from "../../../chunks/index.js";
+import { T as fallback, E as ensure_array_like, F as attr, I as escape_html, J as bind_props, C as pop, z as push } from "../../../chunks/index.js";
 import { s as supabase } from "../../../chunks/supabase.js";
 function TodoList($$payload, $$props) {
   push();

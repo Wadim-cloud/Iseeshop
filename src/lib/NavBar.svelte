@@ -1,358 +1,317 @@
-<script>
-    import { goto, invalidateAll } from '$app/navigation';
-    import { derived, writable } from 'svelte/store';
-    import AuthModal from '$lib/AuthModal.svelte';
+<script lang="ts">
+  import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
+  import type { Session } from '@supabase/supabase-js';
+  import { onMount } from 'svelte';
+  import { fade, slide } from 'svelte/transition';
+  import { get } from 'svelte/store';
 
-    export let session;
-    export let onAuthToggle;
+  export let session: Session | null;
+  export let onAuthToggle: () => void;
 
-    const sessionStore = writable(session);
-    $: sessionStore.set(session);
+  const navItems = [
+    { name: 'Todo', href: '/todo', authRequired: true },
+    { name: 'Gallery', href: '/gallery', authRequired: true },
+    { name: 'Create', href: '/create', authRequired: true },
+    { name: 'About', href: '/about' }
+  ];
 
-    let showAuthModal = false;
+  $: user = session?.user;
+  $: avatarUrl = user?.user_metadata?.avatar_url || '/default-avatar.png';
+  $: displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  $: isCreatePage = get(page).url.pathname === '/create';
 
-    function handleSignInClick() {
-        console.log('Sign In button clicked, setting showAuthModal to true');
-        showAuthModal = true;
-        console.log('showAuthModal state:', showAuthModal);
-    }
+  let isMobile = false;
+  let collapsed = true;
+  let forceDot = false; // Temporary state to force dot during navigation
 
-    const gridCols = 10;
-    const gridRows = 5;
+  onMount(() => {
+    const update = () => (isMobile = window.innerWidth <= 768);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  });
 
-    function createBlocks() {
-        return Array(50).fill(null).map((_, i) => ({
-            id: i,
-            isBlack: false,
-            isBlue: false,
-            isRed: false,
-            navigateTo: null
-        }));
-    }
+  const toggleCollapsed = () => {
+    collapsed = !collapsed;
+  };
 
-    let blocks1 = createBlocks();
-    let blocks2 = createBlocks();
-    let blocks3 = createBlocks();
+  const handleClickOutside = () => {
+    collapsed = true;
+  };
 
-    let blackBlocks1 = [];
-    let blackBlocks2 = [];
-    let blackBlocks3 = [];
-
-    const user = derived(sessionStore, $session => $session?.user || null);
-    const avatarUrl = derived(user, $user => $user?.user_metadata?.avatar_url || '/default-avatar.png');
-    const displayName = derived(user, $user => $user?.user_metadata?.full_name || $user?.email?.split('@')[0] || 'User');
-
-    // Notify unauthenticated users when they attempt to access protected routes
-    function notifyLoginRequired() {
-        alert('Please log in to access this feature.');
-        handleSignInClick(); // Optionally open the AuthModal
-    }
-
-    function handleMouseMove(event, blocks, setBlocks) {
-        const navbar = event.currentTarget;
-        const rect = navbar.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-
-        const blockWidth = 200 / gridCols;
-        const blockHeight = 50 / gridRows;
-        const col = Math.floor(mouseX / blockWidth);
-        const row = Math.floor(mouseY / blockHeight);
-        const centerIndex = row * gridCols + col;
-
-        let updated = blocks.map(block => ({ ...block, isBlue: false }));
-
-        const distances = updated.map((block, index) => {
-            const blockRow = Math.floor(index / gridCols);
-            const blockCol = index % gridCols;
-            const distance = Math.sqrt((blockCol - col) ** 2 + (blockRow - row) ** 2);
-            return { index, distance };
-        });
-
-        distances.sort((a, b) => a.distance - b.distance);
-        const nearestThree = distances.slice(0, 3).map(d => d.index);
-
-        updated = updated.map((block, index) => ({
-            ...block,
-            isBlue: nearestThree.includes(index) && !block.isBlack
-        }));
-
-        if (centerIndex >= 0 && centerIndex < updated.length && !updated[centerIndex].isBlack) {
-            setTimeout(() => {
-                updated = updated.map((block, i) => ({
-                    ...block,
-                    isRed: i === centerIndex && !block.isBlack
-                }));
-                setBlocks([...updated]);
-                setTimeout(() => {
-                    updated = updated.map((block, i) => ({
-                        ...block,
-                        isRed: i === centerIndex ? false : block.isRed
-                    }));
-                    setBlocks([...updated]);
-                }, 500);
-            }, 100);
-        }
-
-        setBlocks([...updated]);
-    }
-
-    function handleClick(index, blocks, setBlocks, blackBlocks) {
-        if (!$user) {
-            notifyLoginRequired();
-            return;
-        }
-
-        if (blackBlocks.length < 2 && !blocks[index].isBlack) {
-            const updated = blocks.map((block, i) => ({
-                ...block,
-                isBlack: i === index ? true : block.isBlack,
-                isBlue: i === index ? false : block.isBlue,
-                isRed: i === index ? false : block.isRed
-            }));
-
-            blackBlocks.push(index);
-
-            if (blackBlocks.length === 1) {
-                updated[index].navigateTo = '/create';
-            } else if (blackBlocks.length === 2) {
-                updated[index].navigateTo = '/gallery';
-            }
-
-            setBlocks([...updated]);
-        } else if (blocks[index].isBlack && blocks[index].navigateTo) {
-            goto(blocks[index].navigateTo);
-        }
-    }
-
-    function handleMouseLeave(setBlocks, blocks) {
-        setBlocks(blocks.map(block => ({ ...block, isBlue: false, isRed: false })));
-    }
-
-    // Protected navigation function
-    function navigateTo(route) {
-        if ($user) {
-            goto(route);
-        } else {
-            notifyLoginRequired();
-        }
-    }
+  // Handle Create link click to ensure dot appears
+  const handleCreateClick = async () => {
+    forceDot = true; // Force dot rendering during navigation
+    collapsed = true; // Close menu if open
+    await goto('/create'); // Ensure navigation
+  };
 </script>
 
-<div class="navbar-row">
-    <!-- Navbar 1 -->
-    <div
-        class="navbar"
-        on:mousemove={(e) => handleMouseMove(e, blocks1, b => blocks1 = b)}
-        on:mouseleave={() => handleMouseLeave(b => blocks1 = b, blocks1)}
-    >
-        {#each blocks1 as block (block.id)}
-            <div
-                class="block"
-                class:black={block.isBlack}
-                class:blue={block.isBlue}
-                class:red={block.isRed}
-                on:click={() => handleClick(block.id, blocks1, b => blocks1 = b, blackBlocks1)}
-            ></div>
-        {/each}
+{#if (isMobile || isCreatePage || forceDot) && user}
+  {#if collapsed}
+    <div class="nav-dot" on:click={toggleCollapsed} in:fade>
+      <span class="dot-tooltip">Menu</span>
     </div>
+  {:else}
+    <div class="mobile-overlay" on:click={handleClickOutside}>
+      <nav class="mobile-menu" in:slide on:click|stopPropagation>
+        <a href="/" class="brand" on:click={() => (collapsed = true)}>
+          <img src="/logo192.png" alt="Pexos Logo" class="logo" />
+          <span class="brand-name">Pexos</span>
+        </a>
 
-    <div class="label-box" on:click={() => navigateTo('/create')}>Create</div>
-
-    <!-- Navbar 2 -->
-    <div
-        class="navbar alt-theme"
-        on:mousemove={(e) => handleMouseMove(e, blocks2, b => blocks2 = b)}
-        on:mouseleave={() => handleMouseLeave(b => blocks2 = b, blocks2)}
-    >
-        {#each blocks2 as block (block.id)}
-            <div
-                class="block"
-                class:black={block.isBlack}
-                class:alt-blue={block.isBlue}
-                class:alt-red={block.isRed}
-                on:click={() => handleClick(block.id, blocks2, b => blocks2 = b, blackBlocks2)}
-            ></div>
-        {/each}
-    </div>
-
-    <div class="label-box" on:click={() => navigateTo('/todo')}>List</div>
-    <div class="label-box" on:click={() => navigateTo('/gallery')}>Gallery</div>
-
-    <!-- Navbar 3 -->
-    <div
-        class="navbar alt-theme-2"
-        on:mousemove={(e) => handleMouseMove(e, blocks3, b => blocks3 = b)}
-        on:mouseleave={() => handleMouseLeave(b => blocks3 = b, blocks3)}
-    >
-        {#each blocks3 as block (block.id)}
-            <div
-                class="block"
-                class:black={block.isBlack}
-                class:alt2-blue={block.isBlue}
-                class:alt2-red={block.isRed}
-                on:click={() => handleClick(block.id, blocks3, b => blocks3 = b, blackBlocks3)}
-            ></div>
-        {/each}
-    </div>
-
-    <!-- Menu with Icons -->
-    <div class="menu-bar">
-        {#if $user}
-            <div class="menu-block logout" on:click={onAuthToggle} title="Logout">
-                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-            </div>
-            <div class="menu-block avatar" on:click={() => navigateTo('/settings')}>
-                <img src={$avatarUrl} alt="avatar" class="avatar-image" />
-            </div>
-        {:else}
-            <div class="menu-block login" on:click={handleSignInClick} title="Login">
-                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                    <polyline points="10 17 15 12 10 7"></polyline>
-                    <line x1="15" y1="12" x2="3" y2="12"></line>
-                </svg>
-            </div>
-        {/if}
-        <div class="menu-block about" on:click={() => navigateTo('/about')} title="About">
-            <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
+        <div class="nav-links">
+          {#each navItems as item}
+            {#if !item.authRequired || (item.authRequired && session)}
+              <a
+                href={item.href}
+                class="nav-link"
+                class:active={get(page).url.pathname === item.href}
+                on:click={item.href === '/create' ? handleCreateClick : () => (collapsed = true)}
+              >
+                {item.name}
+              </a>
+            {/if}
+          {/each}
         </div>
-    </div>
-</div>
 
-{#if showAuthModal}
-    <div class="modal-debug">Modal should be visible</div>
-    <AuthModal
-        bind:show={showAuthModal}
-        on:authSuccess={async () => {
-            console.log('Auth success event');
-            await invalidateAll();
-            const redirectTo = localStorage.getItem('sb-redirect') || '/';
-            localStorage.removeItem('sb-redirect');
-            console.log('Redirecting after auth success:', redirectTo);
-            goto(redirectTo, { replaceState: true });
-        }}
-        on:authError={({ detail }) => {
-            console.log('Auth error:', detail.message);
-            showAuthModal = false;
-        }}
-    />
+        <div class="auth-section" on:click|stopPropagation>
+          <div class="user-profile">
+            <img src={avatarUrl} alt="User Avatar" class="avatar" />
+            <span class="username">{displayName}</span>
+          </div>
+          <button
+            on:click={() => {
+              collapsed = true;
+              onAuthToggle();
+            }}
+            class="auth-button sign-out"
+          >
+            Sign Out
+          </button>
+        </div>
+      </nav>
+    </div>
+  {/if}
+{:else}
+  <!-- Desktop nav -->
+  <nav class="navbar" in:fade={{ duration: 200 }}>
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <img src="/logo192.png" alt="Pexos Logo" class="logo" />
+        <span class="brand-name">Pexos</span>
+      </a>
+
+      <div class="nav-links">
+        {#each navItems as item}
+          {#if !item.authRequired || (item.authRequired && session)}
+            <a
+              href={item.href}
+              class="nav-link"
+              class:active={get(page).url.pathname === item.href}
+              on:click={item.href === '/create' ? handleCreateClick : undefined}
+            >
+              {item.name}
+            </a>
+          {/if}
+        {/each}
+      </div>
+
+      <div class="auth-section">
+        {#if user}
+          <div class="user-profile">
+            <img src={avatarUrl} alt="User Avatar" class="avatar" />
+            <span class="username">{displayName}</span>
+          </div>
+          <button on:click={onAuthToggle} class="auth-button sign-out">Sign Out</button>
+        {/if}
+      </div>
+    </div>
+  </nav>
 {/if}
 
 <style>
-   .navbar-row {
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: 0;
-}
-
-.navbar {
-    width: 200px;
-    height: 50px;
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: repeat(5, 1fr);
-    gap: 1px;
-    background-color: #f0f0f0;
-}
-
-.block {
-    background-color: #ccc;
-    transition: background-color 0.3s;
-}
-
-.block:hover {
-    cursor: pointer;
-}
-
-.blue { background-color: blue !important; }
-.red { background-color: red !important; }
-.black { background-color: black !important; }
-
-.alt-blue { background-color: teal !important; }
-.alt-red { background-color: orange !important; }
-
-.alt2-blue { background-color: purple !important; }
-.alt2-red { background-color: yellow !important; }
-
-.label-box {
-    width: 200px;
-    height: 50px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    font-size: 20px;
-    font-family: monospace;
-    background-color: #eee;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.label-box:hover {
-    background-color: #ddd;
-    transform: scale(1.05);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
-}
-
-.menu-bar {
-    width: 200px;
-    height: 50px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background-color: #222;
-}
-
-.menu-block {
-    background-color: #555;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    overflow: hidden;
-}
-
-.menu-block:hover {
-    filter: brightness(1.3);
-    transform: scale(1.05);
-}
-
-.icon {
-    stroke: white;
-    width: 24px;
-    height: 24px;
-}
-
-.logout { background-color: crimson; }
-.about { background-color: gold; }
-.login { background-color: green; }
-.avatar { background-color: #4a86e8; }
-
-.avatar-image {
+    justify-content: space-between;
     width: 100%;
-    height: 100%;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .logo {
+    height: 36px;
+    margin-right: 0.5rem;
+  }
+
+  .brand-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #222;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+    padding: 0.5rem 0;
+    position: relative;
+  }
+
+  .nav-link.active::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #007bff;
+  }
+
+  .auth-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     object-fit: cover;
-    object-position: center;
-}
+  }
 
-.modal-debug {
+  .username {
+    font-size: 0.9rem;
+    color: #333;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .auth-button {
+    padding: 0.45rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    background-color: #dc3545;
+    color: white;
+    transition: all 0.2s ease;
+  }
+
+  .auth-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .nav-dot {
     position: fixed;
-    top: 10px;
-    left: 10px;
-    color: red;
-    font-size: 14px;
-    z-index: 2000;
-}
+    top: 1rem;
+    left: 1rem;
+    width: 48px;
+    height: 48px;
+    background-color: #007bff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    cursor: pointer;
+  }
 
+  .dot-tooltip {
+    position: absolute;
+    bottom: -1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    background-color: #333;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 15;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .mobile-menu {
+    background-color: #fff;
+    width: 85%;
+    max-width: 300px;
+    height: 100%;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    z-index: 20;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .navbar {
+      flex-direction: column;
+      padding: 1rem;
+      gap: 1rem;
+    }
+
+    .nav-container {
+      flex-direction: column;
+    }
+
+    .nav-links {
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .auth-section {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
 </style>
