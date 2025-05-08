@@ -1,24 +1,18 @@
-# create-svelte
+So you clone the repo
 
-Everything you need to build a Svelte library, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
-
-Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).
+then npm install the node-modules and such and then run dev
 
 ## Creating a project
 
+Yet without acces to my supabase evironment that will be challenge.
+
+For now visit pexos.netlify.app to get to know the tool if you would like to use it.
+
 If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Once you've cloned, forked the project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
 
 ```bash
 npm run dev
