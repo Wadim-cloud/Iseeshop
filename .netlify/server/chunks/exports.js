@@ -1,4 +1,4 @@
-import { Y as noop, Z as safe_not_equal, _ as subscribe_to_store } from "./index.js";
+import { o as noop, q as safe_not_equal, r as subscribe_to_store, t as run_all } from "./index.js";
 const internal = new URL("sveltekit-internal://");
 function resolve(base, path) {
   if (path[0] === "/" && path[1] === "/") return path;
@@ -148,10 +148,53 @@ function writable(value, start = noop) {
   }
   return { set, update, subscribe };
 }
-function get(store) {
-  let value;
-  subscribe_to_store(store, (_) => value = _)();
-  return value;
+function derived(stores, fn, initial_value) {
+  const single = !Array.isArray(stores);
+  const stores_array = single ? [stores] : stores;
+  if (!stores_array.every(Boolean)) {
+    throw new Error("derived() expects stores as input, got a falsy value");
+  }
+  const auto = fn.length < 2;
+  return readable(initial_value, (set, update) => {
+    let started = false;
+    const values = [];
+    let pending = 0;
+    let cleanup = noop;
+    const sync = () => {
+      if (pending) {
+        return;
+      }
+      cleanup();
+      const result = fn(single ? values[0] : values, set, update);
+      if (auto) {
+        set(result);
+      } else {
+        cleanup = typeof result === "function" ? result : noop;
+      }
+    };
+    const unsubscribers = stores_array.map(
+      (store, i) => subscribe_to_store(
+        store,
+        (value) => {
+          values[i] = value;
+          pending &= ~(1 << i);
+          if (started) {
+            sync();
+          }
+        },
+        () => {
+          pending |= 1 << i;
+        }
+      )
+    );
+    started = true;
+    sync();
+    return function stop() {
+      run_all(unsubscribers);
+      cleanup();
+      started = false;
+    };
+  });
 }
 function validator(expected) {
   function validate(module, file) {
@@ -217,15 +260,15 @@ const validate_layout_server_exports = validator(valid_layout_server_exports);
 const validate_page_server_exports = validator(valid_page_server_exports);
 const validate_server_exports = validator(valid_server_exports);
 export {
-  decode_params as a,
-  validate_layout_exports as b,
-  validate_page_server_exports as c,
-  disable_search as d,
-  validate_page_exports as e,
-  resolve as f,
-  decode_pathname as g,
-  validate_server_exports as h,
-  get as i,
+  disable_search as a,
+  decode_params as b,
+  validate_layout_exports as c,
+  derived as d,
+  validate_page_server_exports as e,
+  validate_page_exports as f,
+  resolve as g,
+  decode_pathname as h,
+  validate_server_exports as i,
   make_trackable as m,
   normalize_path as n,
   readable as r,

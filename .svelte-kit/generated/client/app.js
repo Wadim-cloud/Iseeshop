@@ -9,7 +9,13 @@ export const nodes = [
 	() => import('./nodes/5'),
 	() => import('./nodes/6'),
 	() => import('./nodes/7'),
-	() => import('./nodes/8')
+	() => import('./nodes/8'),
+	() => import('./nodes/9'),
+	() => import('./nodes/10'),
+	() => import('./nodes/11'),
+	() => import('./nodes/12'),
+	() => import('./nodes/13'),
+	() => import('./nodes/14')
 ];
 
 export const server_loads = [];
@@ -20,8 +26,14 @@ export const dictionary = {
 		"/auth/callback": [4],
 		"/create": [~5],
 		"/gallery": [~6],
-		"/shaders-filters": [7],
-		"/todo": [8]
+		"/gallery/checkout": [7],
+		"/gallery/[id]": [8],
+		"/playground": [9],
+		"/sales": [~10],
+		"/settings": [11],
+		"/settings/admin": [12],
+		"/shaders-filters": [13],
+		"/todo": [14]
 	};
 
 export const hooks = {

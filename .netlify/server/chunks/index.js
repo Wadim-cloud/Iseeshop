@@ -1136,16 +1136,12 @@ function process_effects(root) {
       } else if (is_branch) {
         effect2.f ^= CLEAN;
       } else {
-        var previous_active_reaction = active_reaction;
         try {
-          active_reaction = effect2;
           if (check_dirtiness(effect2)) {
             update_effect(effect2);
           }
         } catch (error) {
           handle_error(error, effect2, null, effect2.ctx);
-        } finally {
-          active_reaction = previous_active_reaction;
         }
       }
       var child = effect2.first;
@@ -1261,6 +1257,9 @@ function attr(name, value, is_boolean = false) {
 const whitespace = [..." 	\n\r\f \v\uFEFF"];
 function to_class(value, hash, directives) {
   var classname = value == null ? "" : "" + value;
+  if (hash) {
+    classname = classname ? classname + " " + hash : hash;
+  }
   if (directives) {
     for (var key in directives) {
       if (directives[key]) {
@@ -1287,6 +1286,7 @@ function to_style(value, styles) {
 function subscribe_to_store(store, run, invalidate) {
   if (store == null) {
     run(void 0);
+    if (invalidate) invalidate(void 0);
     return noop;
   }
   const unsub = untrack(
@@ -1477,15 +1477,6 @@ function unsubscribe_stores(store_values) {
     store_values[store_name][1]();
   }
 }
-function slot(payload, $$props, name, slot_props, fallback_fn) {
-  var slot_fn = $$props.$$slots?.[name];
-  if (slot_fn === true) {
-    slot_fn = $$props["children"];
-  }
-  if (slot_fn !== void 0) {
-    slot_fn(payload, slot_props);
-  }
-}
 function bind_props(props_parent, props_now) {
   for (const key in props_now) {
     const initial_value = props_parent[key];
@@ -1502,57 +1493,57 @@ function ensure_array_like(array_like_or_iterator) {
   return [];
 }
 export {
-  setContext as A,
-  BROWSER as B,
-  pop as C,
-  getContext as D,
-  ensure_array_like as E,
-  attr as F,
-  attr_class as G,
+  set_active_reaction as A,
+  set_active_effect as B,
+  is_array as C,
+  active_effect as D,
+  active_reaction as E,
+  init_operations as F,
+  get_first_child as G,
   HYDRATION_ERROR as H,
-  escape_html as I,
-  bind_props as J,
-  store_set as K,
-  LEGACY_PROPS as L,
-  head as M,
-  store_get as N,
-  slot as O,
-  unsubscribe_stores as P,
-  copy_payload as Q,
-  assign_payload as R,
-  spread_props as S,
-  fallback as T,
-  attr_style as U,
-  stringify as V,
-  store_mutate as W,
-  current_component as X,
-  noop as Y,
-  safe_not_equal as Z,
-  subscribe_to_store as _,
-  set_active_effect as a,
-  active_effect as b,
-  active_reaction as c,
-  define_property as d,
-  init_operations as e,
-  get_first_child as f,
-  get_next_sibling as g,
-  HYDRATION_START as h,
-  is_array as i,
-  HYDRATION_END as j,
-  hydration_failed as k,
-  clear_text_content as l,
-  array_from as m,
-  component_root as n,
-  create_text as o,
-  branch as p,
-  push$1 as q,
-  component_context as r,
-  set_active_reaction as s,
-  pop$1 as t,
-  set as u,
-  get as v,
-  flushSync as w,
-  mutable_source as x,
-  render as y,
-  push as z
+  HYDRATION_START as I,
+  HYDRATION_END as J,
+  hydration_failed as K,
+  clear_text_content as L,
+  array_from as M,
+  component_root as N,
+  create_text as O,
+  branch as P,
+  push$1 as Q,
+  component_context as R,
+  pop$1 as S,
+  set as T,
+  LEGACY_PROPS as U,
+  get as V,
+  flushSync as W,
+  mutable_source as X,
+  render as Y,
+  setContext as Z,
+  BROWSER as _,
+  push as a,
+  attr as b,
+  current_component as c,
+  attr_class as d,
+  ensure_array_like as e,
+  escape_html as f,
+  stringify as g,
+  head as h,
+  attr_style as i,
+  fallback as j,
+  bind_props as k,
+  copy_payload as l,
+  assign_payload as m,
+  getContext as n,
+  noop as o,
+  pop as p,
+  safe_not_equal as q,
+  subscribe_to_store as r,
+  store_get as s,
+  run_all as t,
+  unsubscribe_stores as u,
+  spread_props as v,
+  store_set as w,
+  store_mutate as x,
+  get_next_sibling as y,
+  define_property as z
 };

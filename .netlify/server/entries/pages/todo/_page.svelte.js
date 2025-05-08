@@ -1,5 +1,6 @@
-import { T as fallback, E as ensure_array_like, F as attr, I as escape_html, J as bind_props, C as pop, z as push } from "../../../chunks/index.js";
+import { j as fallback, e as ensure_array_like, b as attr, f as escape_html, k as bind_props, p as pop, a as push } from "../../../chunks/index.js";
 import { s as supabase } from "../../../chunks/supabase.js";
+import { o as onDestroy } from "../../../chunks/index-server.js";
 function TodoList($$payload, $$props) {
   push();
   let todos = fallback($$props["todos"], () => [], true);
@@ -18,8 +19,14 @@ function TodoList($$payload, $$props) {
 function _page($$payload, $$props) {
   push();
   let todos = [];
+  let sharedTodos = [];
   let newTodo = "";
-  async function toggleDone(todo) {
+  let shareEmail = "";
+  let user;
+  onDestroy(() => {
+    supabase.removeAllChannels();
+  });
+  async function toggleDone(todo, isShared = false) {
     try {
       const { error } = await supabase.from("todos").update({ done: !todo.done }).eq("id", todo.id);
       if (error) {
@@ -27,34 +34,72 @@ function _page($$payload, $$props) {
         alert("Failed to update todo. Please try again.");
         return;
       }
-      todos = todos.map((t) => t.id === todo.id ? { ...t, done: !t.done } : t);
+      if (isShared) {
+        sharedTodos = sharedTodos.map((t) => t.id === todo.id ? { ...t, done: !t.done } : t);
+      } else {
+        todos = todos.map((t) => t.id === todo.id ? { ...t, done: !t.done } : t);
+      }
     } catch (err) {
       console.error("Unexpected error while updating todo:", err);
       alert("An unexpected error occurred. Please try again.");
     }
   }
   async function remove(todo) {
-    const { error } = await supabase.from("todos").delete().eq("id", todo.id);
-    if (error) {
-      console.error("Error deleting todo:", error.message);
-      alert("Failed to delete todo. Please try again.");
-      return;
+    try {
+      const { error } = await supabase.from("todos").delete().eq("id", todo.id).eq("user_id", user.id);
+      if (error) {
+        console.error("Error deleting todo:", error.message);
+        alert("Failed to delete todo. Please try again.");
+        return;
+      }
+      todos = todos.filter((t) => t.id !== todo.id);
+    } catch (err) {
+      console.error("Unexpected error while deleting todo:", err);
+      alert("An unexpected error occurred. Please try again.");
     }
-    todos = todos.filter((t) => t.id !== todo.id);
   }
-  $$payload.out += `<div class="board svelte-1lqry9u"><input placeholder="What needs to be done?"${attr("value", newTodo)} class="svelte-1lqry9u"> <div class="todo"><h2 class="svelte-1lqry9u">Todo</h2> `;
+  const each_array = ensure_array_like(sharedTodos);
+  const each_array_1 = ensure_array_like(todos);
+  $$payload.out += `<div class="board svelte-dn77k5"><textarea placeholder="What needs to be done?" rows="1" class="todo-input svelte-dn77k5">`;
+  const $$body = escape_html(newTodo);
+  if ($$body) {
+    $$payload.out += `${$$body}`;
+  }
+  $$payload.out += `</textarea> <div class="todo"><h2 class="svelte-dn77k5">My Tasks - Todo</h2> `;
   TodoList($$payload, {
     todos: todos.filter((t) => !t.done),
     onToggleDone: toggleDone,
     onRemove: remove
   });
-  $$payload.out += `<!----></div> <div class="done"><h2 class="svelte-1lqry9u">Done</h2> `;
+  $$payload.out += `<!----></div> <div class="done"><h2 class="svelte-dn77k5">My Tasks - Done</h2> `;
   TodoList($$payload, {
     todos: todos.filter((t) => t.done),
     onToggleDone: toggleDone,
     onRemove: remove
   });
-  $$payload.out += `<!----></div></div>`;
+  $$payload.out += `<!----></div> <div class="shared svelte-dn77k5"><h2 class="svelte-dn77k5">Shared with Me</h2> <!--[-->`;
+  for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
+    let todo = each_array[$$index];
+    $$payload.out += `<div><p class="svelte-dn77k5">Shared by: ${escape_html(todo.shared_by_email)}</p> `;
+    TodoList($$payload, {
+      todos: [todo],
+      onToggleDone: (t) => toggleDone(t, true),
+      onRemove: () => {
+      }
+    });
+    $$payload.out += `<!----></div>`;
+  }
+  $$payload.out += `<!--]--></div> <div class="share svelte-dn77k5"><h2 class="svelte-dn77k5">Share a Task</h2> <textarea placeholder="Who do you want to share with? (email)" rows="1" class="email-input svelte-dn77k5">`;
+  const $$body_1 = escape_html(shareEmail);
+  if ($$body_1) {
+    $$payload.out += `${$$body_1}`;
+  }
+  $$payload.out += `</textarea> <!--[-->`;
+  for (let $$index_1 = 0, $$length = each_array_1.length; $$index_1 < $$length; $$index_1++) {
+    let todo = each_array_1[$$index_1];
+    $$payload.out += `<button class="svelte-dn77k5">Share: ${escape_html(todo.description)}</button>`;
+  }
+  $$payload.out += `<!--]--></div></div>`;
   pop();
 }
 export {

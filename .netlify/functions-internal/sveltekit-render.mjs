@@ -9,10 +9,10 @@ function __memo(fn) {
 return {
 	appDir: "_app",
 	appPath: "_app",
-	assets: new Set(["favicon.png","logo192.png","models/Dobbelsteen.stl","models/test.stl","models/tshirt.stl","texture/boom.png","_redirects"]),
-	mimeTypes: {".png":"image/png",".stl":"model/stl"},
+	assets: new Set(["chimp.jpg","favicon.png","fonts/Inter_18pt-ExtraBold.ttf","fonts/Inter_18pt-ExtraLight.ttf","fonts/Inter_18pt-Light.ttf","fonts/Inter_18pt-Medium.ttf","fonts/Inter_18pt-Regular.ttf","fonts/Stanley.otf","frogger.jpg","logo192.png","models/Dobbelsteen.stl","models/test.stl","models/tshirt.stl","service-worker.js","texture/boom.png","_redirects"]),
+	mimeTypes: {".jpg":"image/jpeg",".png":"image/png",".ttf":"font/ttf",".otf":"font/otf",".stl":"model/stl",".js":"text/javascript"},
 	_: {
-		client: {start:"_app/immutable/entry/start.p6lkoguK.js",app:"_app/immutable/entry/app.C-xbMAly.js",imports:["_app/immutable/entry/start.p6lkoguK.js","_app/immutable/chunks/DoXARqE7.js","_app/immutable/chunks/BDHGhfTE.js","_app/immutable/chunks/DH2AK175.js","_app/immutable/entry/app.C-xbMAly.js","_app/immutable/chunks/C1FmrZbK.js","_app/immutable/chunks/BDHGhfTE.js","_app/immutable/chunks/CTjs_13Y.js","_app/immutable/chunks/CvTsB6m-.js","_app/immutable/chunks/DPmhzSt5.js","_app/immutable/chunks/1K336M6a.js","_app/immutable/chunks/RZ2m-Vl7.js","_app/immutable/chunks/ChMpMzq7.js","_app/immutable/chunks/DH2AK175.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.BLXs2sHE.js",app:"_app/immutable/entry/app.Dp-KfJYF.js",imports:["_app/immutable/entry/start.BLXs2sHE.js","_app/immutable/chunks/DVI0icdo.js","_app/immutable/chunks/CgpLTG9e.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/4hlrb4d8.js","_app/immutable/entry/app.Dp-KfJYF.js","_app/immutable/chunks/C1FmrZbK.js","_app/immutable/chunks/CgpLTG9e.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/C_m-qMmZ.js","_app/immutable/chunks/CVxkZOGS.js","_app/immutable/chunks/CWj6FrbW.js","_app/immutable/chunks/ClXQIVwo.js","_app/immutable/chunks/Bs1xm8oX.js","_app/immutable/chunks/Bxv1m9ax.js","_app/immutable/chunks/CN5En7F1.js","_app/immutable/chunks/4hlrb4d8.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('../server/nodes/0.js')),
 			__memo(() => import('../server/nodes/1.js')),
@@ -22,7 +22,13 @@ return {
 			__memo(() => import('../server/nodes/5.js')),
 			__memo(() => import('../server/nodes/6.js')),
 			__memo(() => import('../server/nodes/7.js')),
-			__memo(() => import('../server/nodes/8.js'))
+			__memo(() => import('../server/nodes/8.js')),
+			__memo(() => import('../server/nodes/9.js')),
+			__memo(() => import('../server/nodes/10.js')),
+			__memo(() => import('../server/nodes/11.js')),
+			__memo(() => import('../server/nodes/12.js')),
+			__memo(() => import('../server/nodes/13.js')),
+			__memo(() => import('../server/nodes/14.js'))
 		],
 		routes: [
 			{
@@ -61,17 +67,59 @@ return {
 				endpoint: null
 			},
 			{
+				id: "/gallery/checkout",
+				pattern: /^\/gallery\/checkout\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 7 },
+				endpoint: null
+			},
+			{
+				id: "/gallery/[id]",
+				pattern: /^\/gallery\/([^/]+?)\/?$/,
+				params: [{"name":"id","optional":false,"rest":false,"chained":false}],
+				page: { layouts: [0,], errors: [1,], leaf: 8 },
+				endpoint: null
+			},
+			{
+				id: "/playground",
+				pattern: /^\/playground\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 9 },
+				endpoint: null
+			},
+			{
+				id: "/sales",
+				pattern: /^\/sales\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 10 },
+				endpoint: null
+			},
+			{
+				id: "/settings",
+				pattern: /^\/settings\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 11 },
+				endpoint: null
+			},
+			{
+				id: "/settings/admin",
+				pattern: /^\/settings\/admin\/?$/,
+				params: [],
+				page: { layouts: [0,], errors: [1,], leaf: 12 },
+				endpoint: null
+			},
+			{
 				id: "/shaders-filters",
 				pattern: /^\/shaders-filters\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 7 },
+				page: { layouts: [0,], errors: [1,], leaf: 13 },
 				endpoint: null
 			},
 			{
 				id: "/todo",
 				pattern: /^\/todo\/?$/,
 				params: [],
-				page: { layouts: [0,], errors: [1,], leaf: 8 },
+				page: { layouts: [0,], errors: [1,], leaf: 14 },
 				endpoint: null
 			}
 		],

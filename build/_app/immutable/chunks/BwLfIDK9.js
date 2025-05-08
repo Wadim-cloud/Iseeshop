@@ -1,0 +1,1 @@
+import{w as e}from"./4hlrb4d8.js";import{s as u}from"./BX0sDDBR.js";const r=e(null);u.auth.getSession().then(({data:{session:t}})=>{r.set((t==null?void 0:t.user)??null)});u.auth.onAuthStateChange((t,a)=>{r.set((a==null?void 0:a.user)??null)});export{r as u};

@@ -49,7 +49,7 @@
   <style>
     .controls {
   position: absolute;
-  top: 10px;
+  top: 70px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -88,8 +88,8 @@
   
     @media (max-width: 768px) {
       .controls {
-        top: 0.5rem;
-        left: 0.5rem;
+        top: 3rem;
+        left: 9rem;
       }
   
       .control-button {

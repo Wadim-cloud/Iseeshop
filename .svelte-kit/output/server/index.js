@@ -1,7 +1,7 @@
-import { B as BROWSER } from "./chunks/index.js";
+import { _ as BROWSER } from "./chunks/index.js";
 import { a as assets, b as base, c as app_dir, p as public_env, s as safe_public_env, o as override, r as reset, d as read_implementation, e as options, g as get_hooks, f as set_private_env, h as prerendering, i as set_public_env, j as set_safe_public_env, k as set_read_implementation } from "./chunks/internal.js";
 import * as devalue from "devalue";
-import { m as make_trackable, d as disable_search, a as decode_params, r as readable, w as writable, v as validate_layout_server_exports, b as validate_layout_exports, c as validate_page_server_exports, e as validate_page_exports, n as normalize_path, f as resolve, g as decode_pathname, h as validate_server_exports } from "./chunks/exports.js";
+import { m as make_trackable, a as disable_search, b as decode_params, r as readable, w as writable, v as validate_layout_server_exports, c as validate_layout_exports, e as validate_page_server_exports, f as validate_page_exports, n as normalize_path, g as resolve, h as decode_pathname, i as validate_server_exports } from "./chunks/exports.js";
 import { parse, serialize } from "cookie";
 import * as set_cookie_parser from "set-cookie-parser";
 const SVELTE_KIT_ASSETS = "/_svelte_kit_assets";
@@ -2853,7 +2853,7 @@ async function respond(request, options2, manifest, state) {
     fetch: null,
     getClientAddress: state.getClientAddress || (() => {
       throw new Error(
-        `${"@sveltejs/adapter-static"} does not specify getClientAddress. Please raise an issue`
+        `${"@sveltejs/adapter-netlify"} does not specify getClientAddress. Please raise an issue`
       );
     }),
     locals: {},

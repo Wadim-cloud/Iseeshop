@@ -14,9 +14,12 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
 }
 declare const GalleryGrid: $$__sveltets_2_IsomorphicComponent<{
     drawings: Drawing[];
-    onLike: (id: number) => void;
-    onPreview: (imageData: string) => void;
-    on3DPreview: (imageData: string) => void;
+    loading: boolean;
+    error: string | null;
+    onLike: (id: string) => void;
+    onPreview: (img: string) => void;
+    onOpenComments: (drawingId: string, drawingUuid: string) => void;
+    onPageChange: (page: number) => void;
 }, {
     [evt: string]: CustomEvent<any>;
 }, {}, {}, string>;

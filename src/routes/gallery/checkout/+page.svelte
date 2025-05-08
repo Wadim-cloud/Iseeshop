@@ -4,7 +4,7 @@
   import { completePurchase, type BuyerInfo } from '$lib/gallery/CheckoutService';
   import { goto } from '$app/navigation';
   import { writable } from 'svelte/store';
-  import sanitizeHtml from 'sanitize-html'; // For input sanitization
+  import sanitizeHtml from 'sanitize-html';
 
   // Available 3D objects
   const objects3D = [
@@ -15,13 +15,39 @@
     { id: 'pillow', name: 'Throw Pillow', price: 34.99, image: '/images/objects/pillow.jpg' }
   ];
 
+  // Country-specific configurations
+  const countryConfigs = {
+    US: {
+      currency: 'USD',
+      zipPattern: '^\\d{5}(-\\d{4})?$',
+      zipTitle: 'Enter a valid US ZIP code (e.g. 12345 or 12345-6789)',
+      states: ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY']
+    },
+    NL: {
+      currency: 'EUR',
+      zipPattern: '^[1-9][0-9]{3}\\s?[A-Z]{2}$',
+      zipTitle: 'Enter a valid Dutch postal code (e.g. 1234 AB)',
+      states: []
+    },
+    UK: {
+      currency: 'GBP',
+      zipPattern: '^[A-Z]{1,2}[0-9][A-Z0-9]?\\s?[0-9][A-Z]{2}$',
+      zipTitle: 'Enter a valid UK postcode (e.g. SW1A 1AA)',
+      states: []
+    },
+    DE: {
+      currency: 'EUR',
+      zipPattern: '^\\d{5}$',
+      zipTitle: 'Enter a valid German postal code (5 digits)',
+      states: []
+    }
+  };
+
+  const DEFAULT_COUNTRY = 'NL';
+
   // Reactive store for selected objects
   const selectedObjects = writable<Record<string, string>>({});
-
-  // Track checkout step
   let checkoutStep: 'product-selection' | 'shipping-info' | 'success' = 'product-selection';
-
-  // Buyer information
   let buyerInfo: BuyerInfo = {
     name: '',
     email: '',
@@ -29,33 +55,50 @@
     city: '',
     state: '',
     zipCode: '',
-    country: ''
+    country: DEFAULT_COUNTRY
   };
-
   let isSubmitting = false;
   let errors: Record<string, string> = {};
   let orderId: string | undefined;
+  let currentCountryConfig = countryConfigs[DEFAULT_COUNTRY];
 
-  // Check if cart is empty
   $: isEmpty = $cartStore.length === 0;
-
-  // Calculate total price
   $: totalAmount = calculateTotal();
+  $: {
+    if (buyerInfo.country && countryConfigs[buyerInfo.country]) {
+      currentCountryConfig = countryConfigs[buyerInfo.country];
+    }
+  }
 
-  // Consolidated onMount
+  function formatCurrency(amount: number): string {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currentCountryConfig.currency
+    }).format(amount);
+  }
+
+  async function getUserProfile() {
+    // Mock implementation - replace with actual user profile fetch
+    return { email: 'user@example.com', name: 'John Doe' };
+  }
+
   onMount(async () => {
-    // Fetch user profile
     try {
       const userProfile = await getUserProfile();
       if (userProfile?.email) {
         buyerInfo.email = userProfile.email;
-        buyerInfo.name = userProfile.name || userProfile.email.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase());
+        buyerInfo.name = userProfile.name || 
+          userProfile.email.split('@')[0]
+            .replace('.', ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+        if (userProfile.country) {
+          buyerInfo.country = userProfile.country;
+        }
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
     }
 
-    // Initialize cart
     if ($cartStore.length > 0) {
       $cartStore.forEach(item => {
         selectedObjects.update(current => {
@@ -70,23 +113,18 @@
     } else {
       goto('/gallery');
     }
-
-    // Debug logs
-    console.log('Cart Store:', $cartStore);
-    console.log('Selected Objects:', $selectedObjects);
   });
 
-  // Update cart item with selected 3D object
   function updateSelection(drawingId: string, objectId: string) {
     selectedObjects.update(current => {
       current[drawingId] = objectId;
       return current;
     });
     cartActions.updateCartItem(drawingId, { selected3DObject: objectId });
-    console.log(`Updated selection for drawing ${drawingId}: ${objectId}`);
+    // Force reactivity by reassigning cartStore (if needed)
+    cartStore.set([...$cartStore]);
   }
 
-  // Remove item from cart
   function removeItem(drawingId: string) {
     cartActions.removeFromCart(drawingId);
     selectedObjects.update(current => {
@@ -98,70 +136,77 @@
     }
   }
 
-  // Calculate total price
-  function calculateTotal() {
-    let total = 0;
-    $cartStore.forEach(item => {
-      const objectId = item.selected3DObject;
-      const object = objects3D.find(obj => obj.id === objectId);
-      if (object) {
-        total += object.price;
-      } else {
-        console.warn(`No object found for drawing ${item.drawingId}, objectId: ${objectId}`);
-      }
-    });
-    console.log('Calculated total:', total);
-    return total;
+  function calculateTotal(): number {
+    return $cartStore.reduce((total, item) => {
+      const object = objects3D.find(obj => obj.id === item.selected3DObject);
+      return total + (object?.price || 0);
+    }, 0);
   }
 
-  // Update totals (redundant with reactive $: totalAmount, but kept for button action)
-  function updateTotals() {
-    totalAmount = calculateTotal();
-    console.log('Totals updated:', totalAmount);
-  }
-
-  // Go to shipping info step
   function goToShippingInfo() {
     checkoutStep = 'shipping-info';
   }
 
-  // Validate buyer info
+  function goBackToProductSelection() {
+    checkoutStep = 'product-selection';
+  }
+
+  function goBackToGallery() {
+    goto('/gallery');
+  }
+
   function validateBuyerInfo(info: BuyerInfo): Record<string, string> {
     const errors: Record<string, string> = {};
-    if (!info.name.trim()) errors.name = 'Full name is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) errors.email = 'Invalid email address';
-    if (!info.address.trim()) errors.address = 'Street address is required';
-    if (!info.city.trim()) errors.city = 'City is required';
-    if (!info.state.trim()) errors.state = 'State/Province is required';
-    if (!info.zipCode.trim()) errors.zipCode = 'Zip/Postal code is required';
-    if (!info.country.trim()) errors.country = 'Country is required';
+    const config = countryConfigs[info.country] || countryConfigs[DEFAULT_COUNTRY];
+
+    if (!info.name?.trim()) errors.name = 'Full name is required';
+    if (!info.email?.trim()) errors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) errors.email = 'Invalid email address';
+    if (!info.address?.trim()) errors.address = 'Street address is required';
+    if (!info.city?.trim()) errors.city = 'City is required';
+    if (!info.state?.trim()) errors.state = 'State/Province is required';
+    if (!info.zipCode?.trim()) errors.zipCode = 'Postal/ZIP code is required';
+    else if (!new RegExp(config.zipPattern).test(info.zipCode)) errors.zipCode = 'Invalid format for selected country';
+    if (!info.country?.trim()) errors.country = 'Country is required';
+
+    console.log('Validation errors:', errors);
     return errors;
   }
 
-  // Sanitize buyer info
   function sanitizeBuyerInfo(info: BuyerInfo): BuyerInfo {
-    return {
-      name: sanitizeHtml(info.name),
-      email: sanitizeHtml(info.email),
-      address: sanitizeHtml(info.address),
-      city: sanitizeHtml(info.city),
-      state: sanitizeHtml(info.state),
-      zipCode: sanitizeHtml(info.zipCode),
-      country: sanitizeHtml(info.country)
+    const sanitize = (str: string) => {
+      const result = sanitizeHtml(str || '', {
+        allowedTags: [],
+        allowedAttributes: {},
+        textFilter: (text) => text.trim() // Preserve valid text
+      });
+      console.log(`Sanitizing "${str}" -> "${result}"`);
+      return result;
     };
+    const sanitized = {
+      name: sanitize(info.name),
+      email: sanitize(info.email),
+      address: sanitize(info.address),
+      city: sanitize(info.city),
+      state: sanitize(info.state),
+      zipCode: sanitize(info.zipCode),
+      country: sanitize(info.country)
+    };
+    console.log('Sanitized buyerInfo:', sanitized);
+    return sanitized;
   }
 
-  // Process checkout
   async function handleSubmit() {
     isSubmitting = true;
     errors = {};
 
-    // Client-side validation
+    console.log('BuyerInfo before validation:', buyerInfo);
     errors = validateBuyerInfo(buyerInfo);
     if (Object.keys(errors).length > 0) {
+      console.log('Validation errors:', errors);
       isSubmitting = false;
-      const firstInvalid = document.querySelector('input:invalid, input[aria-invalid="true"]');
-      if (firstInvalid) firstInvalid.focus();
+      const firstInvalid = document.querySelector('input:invalid, select:invalid, [aria-invalid="true"]');
+      if (firstInvalid) (firstInvalid as HTMLElement).focus();
       return;
     }
 
@@ -171,24 +216,17 @@
       if (result.success) {
         checkoutStep = 'success';
         orderId = result.orderId;
+        cartActions.clearCart();
       } else {
         errors.general = result.error || 'Purchase failed';
+        console.log('Purchase error:', result.error);
       }
     } catch (err) {
       errors.general = err instanceof Error ? err.message : 'An unexpected error occurred';
+      console.log('Unexpected error:', err);
     } finally {
       isSubmitting = false;
     }
-  }
-
-  // Go back to product selection
-  function goBackToProductSelection() {
-    checkoutStep = 'product-selection';
-  }
-
-  // Go back to gallery
-  function goBackToGallery() {
-    goto('/gallery');
   }
 </script>
 
@@ -208,7 +246,7 @@
     {/if}
   </h1>
 
-  {#if isEmpty}
+  {#if isEmpty && checkoutStep !== 'success'}
     <div class="empty-checkout">
       <p>Your cart is empty.</p>
       <button class="back-button" on:click={goBackToGallery}>Return to Gallery</button>
@@ -237,7 +275,7 @@
                     role="button"
                     tabindex="0"
                     on:keydown={e => e.key === 'Enter' && updateSelection(item.drawingId, object.id)}
-                    aria-label={`Select ${object.name}`}
+                    aria-label={"Select " + object.name}
                   >
                     <div class="object-image">
                       <div class="object-placeholder">
@@ -246,7 +284,7 @@
                     </div>
                     <div class="object-info">
                       <span class="object-name">{object.name}</span>
-                      <span class="object-price">${object.price.toFixed(2)}</span>
+                      <span class="object-price">{formatCurrency(object.price)}</span>
                     </div>
                   </div>
                 {/each}
@@ -278,19 +316,18 @@
             {@const selectedObject = objects3D.find(obj => obj.id === $selectedObjects[item.drawingId])}
             <div class="summary-item">
               <span>{selectedObject?.name || 'Custom Object'}</span>
-              <span>${selectedObject?.price.toFixed(2) || '0.00'}</span>
+              <span>{formatCurrency(selectedObject?.price || 0)}</span>
             </div>
           {/each}
         </div>
 
         <div class="summary-total">
           <span>Total</span>
-          <span>${totalAmount.toFixed(2)}</span>
+          <span>{formatCurrency(totalAmount)}</span>
         </div>
 
         <div class="checkout-actions">
           <button class="back-button" on:click={goBackToGallery}>Continue Shopping</button>
-          <button class="update-totals-button" on:click={updateTotals}>Update Totals</button>
           <button class="checkout-button" on:click={goToShippingInfo}>Continue to Shipping</button>
         </div>
       </div>
@@ -298,7 +335,6 @@
   {:else if checkoutStep === 'shipping-info'}
     <div class="cart-summary">
       <h2>Order Summary</h2>
-
       <div class="summary-items">
         {#each $cartStore as item}
           {@const selectedObject = objects3D.find(obj => obj.id === $selectedObjects[item.drawingId])}
@@ -306,15 +342,15 @@
             <img src={item.imageData} alt="Drawing preview" class="item-thumbnail" />
             <div class="item-details">
               <span class="item-id">{selectedObject?.name || 'Custom Object'}</span>
-              <span class="item-price">${selectedObject?.price.toFixed(2) || '0.00'}</span>
+              <span class="item-price">{formatCurrency(selectedObject?.price || 0)}</span>
             </div>
           </div>
         {/each}
       </div>
 
       <div class="summary-total">
-        <span>Total ({$cartSize} items):</span>
-        <span class="total-amount">${totalAmount.toFixed(2)}</span>
+        <span>Total ({$cartSize} {($cartSize === 1 ? 'item' : 'items')}):</span>
+        <span class="total-amount">{formatCurrency(totalAmount)}</span>
       </div>
     </div>
 
@@ -325,7 +361,7 @@
         <div class="error-message" aria-live="polite">{errors.general}</div>
       {/if}
 
-      <form on:submit|preventDefault={handleSubmit} aria-labelledby="shipping-info-heading">
+      <form on:submit|preventDefault={handleSubmit} aria-labelledby="shipping-info-heading" novalidate>
         <div class="form-group">
           <label for="name">Full Name</label>
           <input
@@ -335,7 +371,7 @@
             required
             autocomplete="name"
             aria-invalid={errors.name ? 'true' : 'false'}
-            aria-describedby={errors.name ? 'name-error' : undefined}
+            aria-describedby={errors.name ? 'name-error' : ''}
           />
           {#if errors.name}
             <span id="name-error" class="error-text">{errors.name}</span>
@@ -351,7 +387,7 @@
             required
             autocomplete="email"
             aria-invalid={errors.email ? 'true' : 'false'}
-            aria-describedby={errors.email ? 'email-error' : undefined}
+            aria-describedby={errors.email ? 'email-error' : ''}
           />
           {#if errors.email}
             <span id="email-error" class="error-text">{errors.email}</span>
@@ -367,7 +403,7 @@
             required
             autocomplete="street-address"
             aria-invalid={errors.address ? 'true' : 'false'}
-            aria-describedby={errors.address ? 'address-error' : undefined}
+            aria-describedby={errors.address ? 'address-error' : ''}
           />
           {#if errors.address}
             <span id="address-error" class="error-text">{errors.address}</span>
@@ -384,7 +420,7 @@
               required
               autocomplete="address-level2"
               aria-invalid={errors.city ? 'true' : 'false'}
-              aria-describedby={errors.city ? 'city-error' : undefined}
+              aria-describedby={errors.city ? 'city-error' : ''}
             />
             {#if errors.city}
               <span id="city-error" class="error-text">{errors.city}</span>
@@ -400,7 +436,7 @@
               required
               autocomplete="address-level1"
               aria-invalid={errors.state ? 'true' : 'false'}
-              aria-describedby={errors.state ? 'state-error' : undefined}
+              aria-describedby={errors.state ? 'state-error' : ''}
             />
             {#if errors.state}
               <span id="state-error" class="error-text">{errors.state}</span>
@@ -410,17 +446,17 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="zipCode">Zip/Postal Code</label>
+            <label for="zipCode">Postal/ZIP Code</label>
             <input
               type="text"
               id="zipCode"
               bind:value={buyerInfo.zipCode}
               required
-              pattern="[0-9]{5}(-[0-9]{4})?"
-              title="Enter a valid ZIP code (e.g., 12345 or 12345-6789)"
+              pattern={currentCountryConfig.zipPattern}
+              title={currentCountryConfig.zipTitle}
               autocomplete="postal-code"
               aria-invalid={errors.zipCode ? 'true' : 'false'}
-              aria-describedby={errors.zipCode ? 'zipCode-error' : undefined}
+              aria-describedby={errors.zipCode ? 'zipCode-error' : ''}
             />
             {#if errors.zipCode}
               <span id="zipCode-error" class="error-text">{errors.zipCode}</span>
@@ -429,15 +465,17 @@
 
           <div class="form-group">
             <label for="country">Country</label>
-            <input
-              type="text"
+            <select
               id="country"
               bind:value={buyerInfo.country}
               required
-              autocomplete="country-name"
               aria-invalid={errors.country ? 'true' : 'false'}
-              aria-describedby={errors.country ? 'country-error' : undefined}
-            />
+              aria-describedby={errors.country ? 'country-error' : ''}
+            >
+              {#each Object.keys(countryConfigs) as countryCode}
+                <option value={countryCode}>{countryCode}</option>
+              {/each}
+            </select>
             {#if errors.country}
               <span id="country-error" class="error-text">{errors.country}</span>
             {/if}
@@ -450,7 +488,7 @@
             {#if isSubmitting}
               <span class="spinner"></span> Processing...
             {:else}
-              Complete Purchase - ${totalAmount.toFixed(2)}
+              Complete Purchase - {formatCurrency(totalAmount)}
             {/if}
           </button>
         </div>
@@ -464,7 +502,7 @@
       </svg>
       <h2>Purchase Complete!</h2>
       <p>Your order (#{orderId}) has been successfully placed.</p>
-      <p>You will receive a confirmation email shortly.</p>
+      <p>A confirmation has been sent to {buyerInfo.email}.</p>
       <button class="primary-button" on:click={goBackToGallery}>Back to Gallery</button>
     </div>
   {/if}
@@ -481,11 +519,13 @@
   h1 {
     margin-bottom: 2rem;
     text-align: center;
+    color: #2c3e50;
   }
   
   h2 {
     margin-bottom: 1.5rem;
     font-size: 1.5rem;
+    color: #2c3e50;
   }
   
   .empty-checkout {
@@ -496,11 +536,14 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
   
-  /* Product Selection Step Styles */
   .checkout-content {
     display: grid;
     grid-template-columns: 1fr 320px;
     gap: 2rem;
+    
+    @media (max-width: 960px) {
+      grid-template-columns: 1fr;
+    }
   }
   
   .checkout-items {
@@ -517,11 +560,19 @@
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
   }
   
   .item-image {
     position: relative;
     height: 100%;
+    
+    @media (max-width: 768px) {
+      height: 240px;
+    }
   }
   
   .item-image img {
@@ -544,7 +595,11 @@
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    z-index: 5;
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.9);
+    }
   }
   
   .item-options {
@@ -566,15 +621,15 @@
     overflow: hidden;
     cursor: pointer;
     transition: all 0.2s;
-  }
-  
-  .object-option:hover {
-    border-color: #ccc;
-  }
-  
-  .object-option.selected {
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    
+    &:hover {
+      border-color: #ccc;
+    }
+    
+    &.selected {
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    }
   }
   
   .object-image {
@@ -671,6 +726,10 @@
     height: fit-content;
     position: sticky;
     top: 2rem;
+    
+    @media (max-width: 960px) {
+      position: static;
+    }
   }
   
   .summary-items {
@@ -703,7 +762,6 @@
     gap: 1rem;
   }
   
-  /* Shipping Information Step Styles */
   .cart-summary {
     background: white;
     border-radius: 8px;
@@ -743,127 +801,139 @@
   .form-group {
     margin-bottom: 1.5rem;
     width: 100%;
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+      
+      &:focus {
+        border-color: #4CAF50;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+      }
+      
+      &[aria-invalid="true"] {
+        border-color: #f44336;
+      }
+    }
   }
   
   .form-row {
     display: flex;
     gap: 1rem;
     margin-bottom: 0;
-  }
-  
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-  
-  input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 0;
+    }
   }
   
   .form-actions {
     display: flex;
     justify-content: space-between;
     margin-top: 2rem;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 1rem;
+    }
   }
   
-  /* Success Step Styles */
   .success-message {
-    background: #E8F5E9;
+    background: rgba(76, 175, 80, 0.1);
     border-radius: 8px;
     padding: 3rem 2rem;
     text-align: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    h2 {
+      color: #2E7D32;
+      margin-top: 1rem;
+    }
+    
+    button {
+      margin-top: 2rem;
+    }
   }
   
-  .success-message h2 {
-    color: #2E7D32;
-    margin-top: 1rem;
-  }
-  
-  .success-message button {
-    margin-top: 2rem;
-  }
-  
-  /* Common Button Styles */
   button {
     padding: 0.75rem 1.5rem;
     border-radius: 4px;
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    border: none;
+    
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
   }
   
   .back-button, .secondary-button {
-    background: none;
+    background: white;
     border: 1px solid #ddd;
-  }
-  
-  .back-button:hover, .secondary-button:hover {
-    background: #f5f5f5;
+    color: #333;
+    
+    &:hover {
+      background: #f5f5f5;
+    }
   }
   
   .checkout-button, .primary-button {
     background: #4CAF50;
     color: white;
-    border: none;
     font-weight: bold;
-  }
-  
-  .checkout-button:hover, .primary-button:hover {
-    background: #43A047;
-  }
-  
-  .primary-button:disabled {
-    background: #9E9E9E;
-    cursor: not-allowed;
+    
+    &:hover {
+      background: #43A047;
+    }
+    
+    &:disabled {
+      background: #9E9E9E;
+    }
   }
   
   .error-message {
-    background: #FFEBEE;
-    color: #D32F2F;
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
     padding: 1rem;
     border-radius: 4px;
     margin-bottom: 1.5rem;
   }
   
-  /* Responsive Styles */
-  @media (max-width: 960px) {
-    .checkout-content {
-      grid-template-columns: 1fr;
-    }
-    
-    .checkout-summary {
-      position: static;
-    }
+  .error-text {
+    color: #f44336;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
   }
   
-  /* Responsive Styles (continued) */
-  @media (max-width: 768px) {
-    .checkout-item {
-      grid-template-columns: 1fr;
-    }
-    
-    .item-image {
-      height: 240px;
-    }
-    
-    .form-row {
-      flex-direction: column;
-      gap: 0;
-    }
-    
-    .form-actions {
-      flex-direction: column;
-      gap: 1rem;
-    }
-    
-    button {
-      width: 100%;
-    }
+  .spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>

@@ -12,6 +12,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY, {
     storageKey: "sb-auth-token"
   }
 });
+supabase.auth;
 export {
   supabase as s
 };

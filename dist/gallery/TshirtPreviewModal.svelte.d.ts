@@ -12,10 +12,9 @@ interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> =
     z_$$bindings?: Bindings;
 }
 declare const TshirtPreviewModal: $$__sveltets_2_IsomorphicComponent<{
-    imageData?: string | null;
+    imageData: string;
+    onClose: () => void;
 }, {
-    close: CustomEvent<any>;
-} & {
     [evt: string]: CustomEvent<any>;
 }, {}, {}, string>;
 type TshirtPreviewModal = InstanceType<typeof TshirtPreviewModal>;

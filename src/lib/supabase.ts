@@ -3,13 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 import { browser } from '$app/environment';
 import { replaceState } from '$app/navigation';
 
+// Environment variables
 const SUPABASE_URL = import.meta.env.VITE_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_API_KEY = import.meta.env.VITE_PUBLIC_SUPABASE_API_KEY || '';
 
+// Config validation
 if (!SUPABASE_URL || !SUPABASE_API_KEY) {
   throw new Error('Missing Supabase configuration');
 }
 
+// Supabase client creation
 export const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY, {
   auth: {
     persistSession: true,
@@ -21,8 +24,30 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY, {
   }
 });
 
+// Export auth directly for easier imports
+export const auth = supabase.auth;
+
+// Table subscription helper
+export function subscribeToTable(
+  tableName: string, 
+  callback: (payload: any) => void, 
+  filter?: string
+) {
+  const channel = supabase
+    .channel(`public:${tableName}${filter ? `:${filter}` : ''}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: tableName, filter },
+      callback
+    )
+    .subscribe();
+    
+  return () => supabase.removeChannel(channel);
+}
+
+// Set cookies in development mode
 if (browser && import.meta.env.DEV) {
-  supabase.auth.onAuthStateChange((event, session) => {
+  auth.onAuthStateChange((event, session) => {
     console.debug('Auth State:', event, session?.user?.email);
     if (session) {
       console.log('Setting cookies manually:', {
@@ -38,8 +63,9 @@ if (browser && import.meta.env.DEV) {
   });
 }
 
+// User authentication helpers
 export async function getCurrentUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await auth.getUser();
   if (error) {
     console.error('getCurrentUser error:', error.message);
     throw error;
@@ -48,7 +74,7 @@ export async function getCurrentUser() {
 }
 
 export async function signInWithProvider(provider: 'google' | 'github'): Promise<void> {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: `${window.location.origin}/auth/callback`
@@ -58,4 +84,28 @@ export async function signInWithProvider(provider: 'google' | 'github'): Promise
     console.error(`${provider} login error:`, error.message);
     throw error;
   }
+}
+
+// Additional helper functions
+export async function signOut() {
+  const { error } = await auth.signOut();
+  if (error) {
+    console.error('Sign out error:', error.message);
+    throw error;
+  }
+}
+
+export async function getUserProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+    
+  if (error) {
+    console.error('Get profile error:', error.message);
+    throw error;
+  }
+  
+  return data;
 }

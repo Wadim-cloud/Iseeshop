@@ -2,7 +2,7 @@ import { supabase } from '$lib/supabase';
 import { get } from 'svelte/store';
 import { cartStore, cartActions } from './stores';
 
-// Define 3D objects with their prices to match the Svelte component
+// Define 3D objects with their prices
 const objects3D = [
   { id: 'mug', name: 'Coffee Mug', price: 19.99 },
   { id: 'tshirt', name: 'T-Shirt', price: 24.99 },
@@ -27,14 +27,6 @@ export interface OrderItem {
   selected3DObject?: string;
 }
 
-export interface Order {
-  buyerInfo: BuyerInfo;
-  items: OrderItem[];
-  totalAmount: number;
-  orderDate: string;
-  status: 'pending' | 'completed' | 'failed';
-}
-
 export interface PurchaseResult {
   success: boolean;
   orderId?: string;
@@ -43,16 +35,39 @@ export interface PurchaseResult {
 
 export async function completePurchase(buyerInfo: BuyerInfo): Promise<PurchaseResult> {
   try {
+    // Log buyerInfo for debugging
+    console.log('completePurchase received buyerInfo:', buyerInfo);
+
+    // Validate buyerInfo
+    const requiredFields = ['name', 'email', 'address', 'city', 'state', 'zipCode', 'country'];
+    const missingFields = requiredFields.filter(field => !buyerInfo[field]?.trim());
+    if (missingFields.length > 0) {
+      console.error('Missing fields:', missingFields);
+      return {
+        success: false,
+        error: `Missing required fields: ${missingFields.join(', ')}`
+      };
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerInfo.email)) {
+      console.error('Invalid email:', buyerInfo.email);
+      return {
+        success: false,
+        error: 'Invalid email address'
+      };
+    }
+
     const cartItems = get(cartStore);
-    
     if (!cartItems || cartItems.length === 0) {
+      console.error('Cart is empty');
       return {
         success: false,
         error: 'Cart is empty'
       };
     }
 
-    // Map cart items to order items with prices based on selected 3D objects
+    // Map cart items to order items
     const orderItems: OrderItem[] = cartItems.map(item => {
       const selectedObject = objects3D.find(obj => obj.id === item.selected3DObject);
       if (!selectedObject) {
@@ -90,7 +105,7 @@ export async function completePurchase(buyerInfo: BuyerInfo): Promise<PurchaseRe
       console.error('Error creating order:', orderError);
       return {
         success: false,
-        error: 'Failed to create order'
+        error: `Failed to create order: ${orderError?.message || 'Unknown error'}`
       };
     }
 
@@ -110,11 +125,10 @@ export async function completePurchase(buyerInfo: BuyerInfo): Promise<PurchaseRe
 
     if (itemsError) {
       console.error('Error creating order items:', itemsError);
-      // Clean up by deleting the created order
       await supabase.from('orders').delete().eq('id', orderId);
       return {
         success: false,
-        error: 'Failed to create order items'
+        error: `Failed to create order items: ${itemsError.message}`
       };
     }
 
@@ -126,7 +140,6 @@ export async function completePurchase(buyerInfo: BuyerInfo): Promise<PurchaseRe
 
     if (updateError) {
       console.error('Error updating order status:', updateError);
-      // Note: Order and items were created successfully, but status update failed
     }
 
     // Clear the cart

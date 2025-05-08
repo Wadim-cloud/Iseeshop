@@ -1,9 +1,10 @@
-import { C as pop, z as push, T as fallback, G as attr_class, J as bind_props, E as ensure_array_like, U as attr_style, F as attr, I as escape_html, V as stringify, N as store_get, P as unsubscribe_stores, K as store_set, W as store_mutate } from "../../../chunks/index.js";
+import { p as pop, a as push, j as fallback, d as attr_class, k as bind_props, e as ensure_array_like, i as attr_style, b as attr, g as stringify, f as escape_html, s as store_get, u as unsubscribe_stores, w as store_set, x as store_mutate } from "../../../chunks/index.js";
 import { w as writable } from "../../../chunks/exports.js";
 import { s as supabase } from "../../../chunks/supabase.js";
 import "clsx";
 import { o as onDestroy } from "../../../chunks/index-server.js";
 /* empty css                                                         */
+import { T as Toast } from "../../../chunks/Toast.js";
 function CanvasShader($$payload, $$props) {
   push();
   let animationFrame;
@@ -33,7 +34,7 @@ function DrawingControls($$payload, $$props) {
     canvas = state.canvas;
     console.log("Canvas updated in DrawingControls:", !!canvas);
   });
-  $$payload.out += `<div class="controls svelte-ci69nk"><button class="control-button svelte-ci69nk" aria-label="Toggle menu"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svelte-ci69nk"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button> <button class="control-button svelte-ci69nk" aria-label="Save drawing"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svelte-ci69nk"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button> <button class="control-button svelte-ci69nk" aria-label="Go back"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svelte-ci69nk"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button></div>`;
+  $$payload.out += `<div class="controls svelte-yxtyn0"><button class="control-button svelte-yxtyn0" aria-label="Toggle menu"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svelte-yxtyn0"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button> <button class="control-button svelte-yxtyn0" aria-label="Save drawing"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svelte-yxtyn0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button> <button class="control-button svelte-yxtyn0" aria-label="Go back"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svelte-yxtyn0"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button></div>`;
   bind_props($$props, { onSave, onMenuToggle, canvasStore });
   pop();
 }
@@ -63,22 +64,6 @@ function DrawingMenu($$payload, $$props) {
     onSizeChange
   });
   pop();
-}
-function Toast($$payload, $$props) {
-  let message = $$props["message"];
-  let show = $$props["show"];
-  let type = fallback($$props["type"], "success");
-  if (show) {
-    $$payload.out += "<!--[-->";
-    $$payload.out += `<div${attr_class("toast svelte-1q32h6p", void 0, {
-      "success": type === "success",
-      "error": type === "error"
-    })}>${escape_html(message)}</div>`;
-  } else {
-    $$payload.out += "<!--[!-->";
-  }
-  $$payload.out += `<!--]-->`;
-  bind_props($$props, { message, show, type });
 }
 function _page($$payload, $$props) {
   push();
@@ -168,7 +153,11 @@ function _page($$payload, $$props) {
       const createdAt = (/* @__PURE__ */ new Date()).toISOString();
       const drawingId = await generateDrawingId(store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.email, store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.id);
       const { error: error2 } = await supabase.from("drawings").insert({
+        id: crypto.randomUUID(),
+        // Use this if 'id' is not auto-generated
         drawing_id: drawingId,
+        title: "Untitled",
+        // Default title
         image_data: imageData,
         user_id: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.id,
         user_email: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.email,
@@ -176,11 +165,13 @@ function _page($$payload, $$props) {
         blocked: false,
         likes: 0,
         comments: {}
+        // Consider using null or an array if your DB expects it
       });
-      if (error2) throw error2;
+      if (error2) {
+        console.error("Failed to persist drawing:", error2);
+      }
     } catch (err) {
-      console.error("[Supabase] Persist error:", err);
-      throw err;
+      console.error("Unexpected error in persistDrawing:", err);
     }
   }
   function handlePersistError(error2) {

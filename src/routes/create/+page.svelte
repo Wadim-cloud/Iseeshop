@@ -142,26 +142,35 @@
   }
 
   async function persistDrawing(canvas: HTMLCanvasElement) {
-    try {
-      const imageData = canvas.toDataURL('image/png');
-      const createdAt = new Date().toISOString();
-      const drawingId = await generateDrawingId($sessionStore.user.email, $sessionStore.user.id);
-      const { error } = await supabase.from('drawings').insert({
-        drawing_id: drawingId,
-        image_data: imageData,
-        user_id: $sessionStore.user.id,
-        user_email: $sessionStore.user.email,
-        created_at: createdAt,
-        blocked: false,
-        likes: 0,
-        comments: {}
-      });
-      if (error) throw error;
-    } catch (err) {
-      console.error('[Supabase] Persist error:', err);
-      throw err;
+  try {
+    const imageData = canvas.toDataURL('image/png');
+    const createdAt = new Date().toISOString();
+    const drawingId = await generateDrawingId(
+      $sessionStore.user.email,
+      $sessionStore.user.id
+    );
+
+    const { error } = await supabase.from('drawings').insert({
+      id: crypto.randomUUID(), // Use this if 'id' is not auto-generated
+      drawing_id: drawingId,
+      title: 'Untitled', // Default title
+      image_data: imageData,
+      user_id: $sessionStore.user.id,
+      user_email: $sessionStore.user.email,
+      created_at: createdAt,
+      blocked: false,
+      likes: 0,
+      comments: {}, // Consider using null or an array if your DB expects it
+    });
+
+    if (error) {
+      console.error('Failed to persist drawing:', error);
     }
+  } catch (err) {
+    console.error('Unexpected error in persistDrawing:', err);
   }
+}
+
 
   function handlePersistError(error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to save drawing';
@@ -219,17 +228,6 @@
 />
 
 <style>
-  /* Ensure DrawingControls is above the navbar and mobile menu */
-  :global(.drawing-controls) {
-    position: relative;
-    z-index: 1000; /* Higher than navbar's 999 (mobile-menu, nav-dot) */
-  }
-
-  /* Ensure DrawingMenu is above the navbar and mobile menu */
-  :global(.drawing-menu) {
-    position: relative;
-    z-index: 1000;
-  }
 
   /* Ensure Toast is above everything */
   :global(.toast) {

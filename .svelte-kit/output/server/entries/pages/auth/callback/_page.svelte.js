@@ -1,5 +1,5 @@
 import "clsx";
-import { C as pop, z as push } from "../../../../chunks/index.js";
+import { p as pop, a as push } from "../../../../chunks/index.js";
 import "../../../../chunks/supabase.js";
 import "../../../../chunks/client.js";
 function _page($$payload, $$props) {
