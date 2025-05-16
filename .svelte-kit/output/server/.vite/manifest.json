@@ -8,13 +8,9 @@
       "_internal.js"
     ]
   },
-  "_Authmodal.svelte_svelte_type_style_lang.js": {
-    "file": "_app/immutable/assets/Authmodal.Ca3FhecW.css",
-    "src": "_Authmodal.svelte_svelte_type_style_lang.js"
-  },
-  "_CanvasShader.svelte_svelte_type_style_lang.js": {
-    "file": "_app/immutable/assets/CanvasShader.DGCYF2tG.css",
-    "src": "_CanvasShader.svelte_svelte_type_style_lang.js"
+  "_AuthModal.svelte_svelte_type_style_lang.js": {
+    "file": "_app/immutable/assets/AuthModal.Ca3FhecW.css",
+    "src": "_AuthModal.svelte_svelte_type_style_lang.js"
   },
   "_CommentsModal.svelte_svelte_type_style_lang.js": {
     "file": "_app/immutable/assets/CommentsModal.D3rw-0xz.css",
@@ -29,16 +25,6 @@
     ],
     "css": [
       "_app/immutable/assets/GalleryContainer.B9luv9To.css"
-    ]
-  },
-  "_Toast.js": {
-    "file": "chunks/Toast.js",
-    "name": "Toast",
-    "imports": [
-      "_index.js"
-    ],
-    "css": [
-      "_app/immutable/assets/Toast.DxPHdEw2.css"
     ]
   },
   "_auth.js": {
@@ -131,8 +117,8 @@
       "_notifications.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.7o9Y1YTx.css",
-      "_app/immutable/assets/Authmodal.Ca3FhecW.css"
+      "_app/immutable/assets/_layout.CbLQrPk2.css",
+      "_app/immutable/assets/AuthModal.Ca3FhecW.css"
     ]
   },
   "src/routes/+page.svelte": {
@@ -147,9 +133,8 @@
       "_auth.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.DwJPVvgB.css",
-      "_app/immutable/assets/CanvasShader.DGCYF2tG.css",
-      "_app/immutable/assets/Authmodal.Ca3FhecW.css"
+      "_app/immutable/assets/_page.zaY9L8NP.css",
+      "_app/immutable/assets/AuthModal.Ca3FhecW.css"
     ]
   },
   "src/routes/about/+page.svelte": {
@@ -191,14 +176,10 @@
     "isEntry": true,
     "imports": [
       "_index.js",
-      "_exports.js",
-      "_supabase.js",
-      "_index-server.js",
-      "_Toast.js"
+      "_supabase.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.BH16-_sG.css",
-      "_app/immutable/assets/CanvasShader.DGCYF2tG.css"
+      "_app/immutable/assets/_page.DckU5U6r.css"
     ]
   },
   "src/routes/gallery/+page.server.ts": {
@@ -223,7 +204,7 @@
     ],
     "css": [
       "_app/immutable/assets/_page.CrbfaC9E.css",
-      "_app/immutable/assets/Authmodal.Ca3FhecW.css",
+      "_app/immutable/assets/AuthModal.Ca3FhecW.css",
       "_app/immutable/assets/CommentsModal.D3rw-0xz.css"
     ]
   },
@@ -240,7 +221,7 @@
     ],
     "css": [
       "_app/immutable/assets/_page.Dy_ILyMQ.css",
-      "_app/immutable/assets/Authmodal.Ca3FhecW.css",
+      "_app/immutable/assets/AuthModal.Ca3FhecW.css",
       "_app/immutable/assets/CommentsModal.D3rw-0xz.css"
     ]
   },
@@ -257,7 +238,7 @@
       "_client.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.CeHPRUWM.css"
+      "_app/immutable/assets/_page.Ca4VyaPa.css"
     ]
   },
   "src/routes/playground/+page.svelte": {
@@ -292,11 +273,10 @@
     "imports": [
       "_index.js",
       "_index-server.js",
-      "_notifications.js",
-      "_Toast.js"
+      "_notifications.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.C-WrtjYC.css"
+      "_app/immutable/assets/_page.J9b4tY3u.css"
     ]
   },
   "src/routes/settings/admin/+page.svelte": {

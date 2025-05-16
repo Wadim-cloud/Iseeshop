@@ -83,16 +83,13 @@ function _page($$payload, $$props) {
   let showMenu = false;
   let selected = INITIAL_COLOR;
   let toastTimeout;
-  const getEmailPrefix = (email) => {
-    return email.split("@")[0] || "user";
-  };
+  const getEmailPrefix = (email) => email.split("@")[0] || "user";
   async function getDrawingCount(userId) {
     try {
       const { count, error: error2 } = await supabase.from("drawings").select("*", { count: "exact", head: true }).eq("user_id", userId);
       if (error2) throw error2;
       return count || 0;
     } catch (err) {
-      console.error("Error fetching drawing count:", err);
       store_set(error, "Failed to fetch drawing count");
       return 0;
     }
@@ -103,18 +100,13 @@ function _page($$payload, $$props) {
     return `${prefix}-${count}`;
   }
   async function saveDrawing(canvas) {
-    if (!canvas) {
-      showToast("No canvas element found", "error");
-      return;
-    }
-    if (!store_get($$store_subs ??= {}, "$sessionStore", sessionStore)?.user) {
-      showToast("Please login to save drawings", "error");
-      return;
-    }
+    if (!canvas) return showToast("No canvas found", "error");
+    if (!store_get($$store_subs ??= {}, "$sessionStore", sessionStore)?.user) return showToast("Please log in to save drawings", "error");
     store_set(loading, true);
     try {
       await verifyRateLimits();
-      await persistDrawing(canvas);
+      const drawingId = await persistDrawing(canvas);
+      await triggerNotification(drawingId);
       showToast("Drawing saved successfully!", "success");
     } catch (err) {
       handlePersistError(err);
@@ -123,60 +115,69 @@ function _page($$payload, $$props) {
     }
   }
   async function verifyRateLimits() {
+    const response = await fetch("/api/check-rate-limit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: store_get($$store_subs ??= {}, "$sessionStore", sessionStore)?.user.id
+      })
+    });
+    if (!response.ok) throw new Error("Rate limit service unavailable");
+    const result = await response.json();
+    if (result.blocked) throw new Error(result.message || "You are temporarily banned");
+    if (result.limited) showToast(result.message || "Approaching submission limit", "warning");
+  }
+  async function persistDrawing(canvas) {
+    const imageData = canvas.toDataURL("image/png");
+    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+    const drawingId = await generateDrawingId(store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.email, store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.id);
+    const { error: error2 } = await supabase.from("drawings").insert({
+      id: crypto.randomUUID(),
+      drawing_id: drawingId,
+      title: "Untitled",
+      image_data: imageData,
+      user_id: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.id,
+      user_email: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.email,
+      created_at: createdAt,
+      blocked: false,
+      likes: 0,
+      comments: {}
+    });
+    if (error2) throw new Error("Failed to persist drawing");
+    return drawingId;
+  }
+  async function triggerNotification(drawingId) {
     try {
-      console.log("Fetching rate limit check for user:", store_get($$store_subs ??= {}, "$sessionStore", sessionStore)?.user.id);
-      const response = await fetch("/api/check-rate-limit", {
+      const serviceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYXB6dnNucnpzdWh0b3dtaWh6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMzI2MzQ4MywiZXhwIjoyMDQ4ODM5NDgzfQ.ucVyxw_m53i9H12zFVIe6tbX5a-qWp1Fbr8u2HFrli8";
+      if (!serviceKey) ;
+      const response = await fetch("https://paapzvsnrzsuhtowmihz.supabase.co/functions/v1/send-push", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${serviceKey}`
+        },
         body: JSON.stringify({
-          userId: store_get($$store_subs ??= {}, "$sessionStore", sessionStore)?.user.id
+          title: "New Drawing Added!",
+          body: `Your drawing '${drawingId}' was saved!`,
+          record: {
+            id: drawingId,
+            user_id: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.id,
+            user_email: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.email
+          }
         })
       });
       if (!response.ok) {
-        throw new Error("Rate limit service unavailable");
-      }
-      const result = await response.json();
-      if (result.blocked) {
-        throw new Error(result.message || "You are temporarily banned due to excessive submissions");
-      }
-      if (result.limited) {
-        showToast(result.message || "Warning: approaching submission limit", "warning");
+        const result = await response.json();
+        console.error("Notification failed:", result);
+      } else {
+        console.log("Notification sent successfully.");
       }
     } catch (err) {
-      console.error("[Rate Limit]", err);
-      throw err;
-    }
-  }
-  async function persistDrawing(canvas) {
-    try {
-      const imageData = canvas.toDataURL("image/png");
-      const createdAt = (/* @__PURE__ */ new Date()).toISOString();
-      const drawingId = await generateDrawingId(store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.email, store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.id);
-      const { error: error2 } = await supabase.from("drawings").insert({
-        id: crypto.randomUUID(),
-        // Use this if 'id' is not auto-generated
-        drawing_id: drawingId,
-        title: "Untitled",
-        // Default title
-        image_data: imageData,
-        user_id: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.id,
-        user_email: store_get($$store_subs ??= {}, "$sessionStore", sessionStore).user.email,
-        created_at: createdAt,
-        blocked: false,
-        likes: 0,
-        comments: {}
-        // Consider using null or an array if your DB expects it
-      });
-      if (error2) {
-        console.error("Failed to persist drawing:", error2);
-      }
-    } catch (err) {
-      console.error("Unexpected error in persistDrawing:", err);
+      console.error("Error triggering notification:", err);
     }
   }
   function handlePersistError(error2) {
     const message = error2 instanceof Error ? error2.message : "Failed to save drawing";
-    console.error("[DrawingApp] Save error:", error2);
     showToast(message, "error");
   }
   function showToast(message, type) {

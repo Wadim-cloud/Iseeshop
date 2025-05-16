@@ -28,6 +28,7 @@
 declare module '$env/static/private' {
 	export const VITE_PUBLIC_SUPABASE_URL: string;
 	export const VITE_PUBLIC_SUPABASE_API_KEY: string;
+	export const VITE_SUPABASE_SERVICE_ROLE_KEY: string;
 	export const VITE_SUPABASE_JWT_SECRET: string;
 	export const VITE_PUBLIC_SUPABASE_ANON_KEY: string;
 	export const SUPABASE_SERVICE_ROLE_KEY: string;
@@ -143,6 +144,7 @@ declare module '$env/dynamic/private' {
 	export const env: {
 		VITE_PUBLIC_SUPABASE_URL: string;
 		VITE_PUBLIC_SUPABASE_API_KEY: string;
+		VITE_SUPABASE_SERVICE_ROLE_KEY: string;
 		VITE_SUPABASE_JWT_SECRET: string;
 		VITE_PUBLIC_SUPABASE_ANON_KEY: string;
 		SUPABASE_SERVICE_ROLE_KEY: string;

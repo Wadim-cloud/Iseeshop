@@ -1,4 +1,4 @@
-import { _ as BROWSER } from "./chunks/index.js";
+import { Y as BROWSER } from "./chunks/index.js";
 import { a as assets, b as base, c as app_dir, p as public_env, s as safe_public_env, o as override, r as reset, d as read_implementation, e as options, g as get_hooks, f as set_private_env, h as prerendering, i as set_public_env, j as set_safe_public_env, k as set_read_implementation } from "./chunks/internal.js";
 import * as devalue from "devalue";
 import { m as make_trackable, a as disable_search, b as decode_params, r as readable, w as writable, v as validate_layout_server_exports, c as validate_layout_exports, e as validate_page_server_exports, f as validate_page_exports, n as normalize_path, g as resolve, h as decode_pathname, i as validate_server_exports } from "./chunks/exports.js";
@@ -314,7 +314,7 @@ async function render_endpoint(event, mod, state) {
     event.request.method
   );
   let handler = mod[method] || mod.fallback;
-  if (method === "HEAD" && mod.GET && !mod.HEAD) {
+  if (method === "HEAD" && !mod.HEAD && mod.GET) {
     handler = mod.GET;
   }
   if (!handler) {
@@ -1960,18 +1960,14 @@ class PageNodes {
     }
   }
   /**
-   * @template {'prerender' | 'ssr' | 'csr' | 'trailingSlash' | 'entries'} Option
-   * @template {(import('types').UniversalNode | import('types').ServerNode)[Option]} Value
+   * @template {'prerender' | 'ssr' | 'csr' | 'trailingSlash'} Option
    * @param {Option} option
    * @returns {Value | undefined}
    */
   #get_option(option) {
     return this.data.reduce(
       (value, node) => {
-        return (
-          /** @type {Value} TypeScript's too dumb to understand this */
-          node?.universal?.[option] ?? node?.server?.[option] ?? value
-        );
+        return node?.universal?.[option] ?? node?.server?.[option] ?? value;
       },
       /** @type {Value | undefined} */
       void 0
@@ -1995,6 +1991,7 @@ class PageNodes {
       if (!node?.universal?.config && !node?.server?.config) continue;
       current = {
         ...current,
+        // TODO: should we override the server config value with the universal value similar to other page options?
         ...node?.universal?.config,
         ...node?.server?.config
       };
@@ -2350,14 +2347,16 @@ async function render_page(event, page, options2, manifest, state, nodes, resolv
     const should_prerender_data = nodes.should_prerender_data();
     const data_pathname = add_data_suffix(event.url.pathname);
     const fetched = [];
-    if (nodes.ssr() === false && !(state.prerendering && should_prerender_data)) {
+    const ssr = nodes.ssr();
+    const csr = nodes.csr();
+    if (ssr === false && !(state.prerendering && should_prerender_data)) {
       if (BROWSER && action_result && !event.request.headers.has("x-sveltekit-action")) ;
       return await render_response({
         branch: [],
         fetched,
         page_config: {
           ssr: false,
-          csr: nodes.csr()
+          csr
         },
         status,
         error: null,
@@ -2399,7 +2398,6 @@ async function render_page(event, page, options2, manifest, state, nodes, resolv
         }
       });
     });
-    const csr = nodes.csr();
     const load_promises = nodes.data.map((node, i) => {
       if (load_error) throw load_error;
       return Promise.resolve().then(async () => {
@@ -2464,16 +2462,21 @@ async function render_page(event, page, options2, manifest, state, nodes, resolv
               const node2 = await manifest._.nodes[index]();
               let j = i;
               while (!branch[j]) j -= 1;
+              const layouts = compact(branch.slice(0, j + 1));
+              const nodes2 = new PageNodes(layouts.map((layout) => layout.node));
               return await render_response({
                 event,
                 options: options2,
                 manifest,
                 state,
                 resolve_opts,
-                page_config: { ssr: true, csr: true },
+                page_config: {
+                  ssr: nodes2.ssr(),
+                  csr: nodes2.csr()
+                },
                 status: status2,
                 error,
-                branch: compact(branch.slice(0, j + 1)).concat({
+                branch: layouts.concat({
                   node: node2,
                   data: null,
                   server_data: null
@@ -2504,7 +2507,6 @@ async function render_page(event, page, options2, manifest, state, nodes, resolv
         body: data
       });
     }
-    const ssr = nodes.ssr();
     return await render_response({
       event,
       options: options2,
@@ -2512,7 +2514,7 @@ async function render_page(event, page, options2, manifest, state, nodes, resolv
       state,
       resolve_opts,
       page_config: {
-        csr: nodes.csr(),
+        csr,
         ssr
       },
       status,
@@ -2853,7 +2855,7 @@ async function respond(request, options2, manifest, state) {
     fetch: null,
     getClientAddress: state.getClientAddress || (() => {
       throw new Error(
-        `${"@sveltejs/adapter-netlify"} does not specify getClientAddress. Please raise an issue`
+        `${"@sveltejs/adapter-vercel"} does not specify getClientAddress. Please raise an issue`
       );
     }),
     locals: {},

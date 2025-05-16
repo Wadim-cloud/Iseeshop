@@ -1,6 +1,5 @@
-import { l as copy_payload, m as assign_payload, p as pop, a as push, h as head } from "../../chunks/index.js";
+import { m as copy_payload, o as assign_payload, p as pop, a as push, h as head } from "../../chunks/index.js";
 import "../../chunks/client.js";
-/* empty css                                                      */
 import "../../chunks/supabase.js";
 /* empty css                                                   */
 import "../../chunks/auth.js";

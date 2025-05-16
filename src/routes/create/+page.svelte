@@ -1,248 +1,359 @@
-<script lang="ts">
-  import { onMount, afterUpdate } from 'svelte';
-  import { writable } from 'svelte/store';
-  import { supabase, getCurrentUser } from '$lib/supabase';
-  import DrawingCanvas from '$lib/DrawingCanvas2.svelte';
-  import DrawingControls from '$lib/DrawingControls.svelte';
-  import DrawingMenu from '$lib/DrawingMenu.svelte';
-  import CanvasShader from '$lib/CanvasShader.svelte';
-  import Toast from '$lib/Toast.svelte';
-  import type { Session } from '@supabase/supabase-js';
+<script>
+    import { onMount } from 'svelte';
+    import { supabase } from '$lib/supabase';
 
-  export let data: { session: Session | null };
+    let canvas;
+    let ctx;
+    let drawingId = '';
+    let brushColor = 'black';
+    let brushSize = 5;
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let errorMessage = '';
+    let showModal = false;
+    let drawings = [];
+    let isLoading = false;
 
-  const sessionStore = writable<Session | null>(data.session);
-  const loading = writable(true);
-  const error = writable<string | null>(null);
-  const canvasStore = writable<{ canvas: HTMLCanvasElement | null }>({ canvas: null });
-  const toastState = writable<{
-    message: string;
-    visible: boolean;
-    type: 'success' | 'error' | 'warning';
-  }>({ message: '', visible: false, type: 'success' });
+    const colors = ['black', 'red', 'blue', 'green'];
 
-  const COLORS = ['red', 'green', 'blue', 'black', 'white'] as const;
-  const INITIAL_COLOR = 'black';
-  const INITIAL_SIZE = 10;
-  const TOAST_DURATION = 3000;
+    onMount(() => {
+        ctx = canvas.getContext('2d');
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
 
-  let color = INITIAL_COLOR;
-  let size = INITIAL_SIZE;
-  let showMenu = false;
-  let selected = INITIAL_COLOR;
-  let user = null;
-  let toastTimeout: NodeJS.Timeout;
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
 
-  onMount(async () => {
-    try {
-      const { data: { session: clientSession } } = await supabase.auth.getSession();
-      $sessionStore = clientSession || data.session;
-      user = await getCurrentUser();
-      console.log('Create page user:', user);
-      console.log('Create page session:', $sessionStore);
-      console.log('Client cookies:', document.cookie);
+        // Touch events
+        canvas.addEventListener('touchstart', handleTouchStart);
+        canvas.addEventListener('touchmove', handleTouchMove);
+        canvas.addEventListener('touchend', stopDrawing);
 
-      const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.email);
-        $sessionStore = newSession;
-      });
+        // Preload drawings
+        preloadDrawings();
 
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
-    } catch (err) {
-      $error = err instanceof Error ? err.message : 'Failed to load session';
-      console.error('Session sync error:', err);
-    } finally {
-      $loading = false;
-    }
-  });
-
-  afterUpdate(() => {
-    if (import.meta.env.DEV && $sessionStore) {
-      console.debug('[DrawingApp] Session active for:', $sessionStore.user?.email);
-    }
-  });
-
-  const getEmailPrefix = (email: string): string => {
-    return email.split('@')[0] || 'user';
-  };
-
-  async function getDrawingCount(userId: string): Promise<number> {
-    try {
-      const { count, error } = await supabase
-        .from('drawings')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
-      if (error) throw error;
-      return count || 0;
-    } catch (err) {
-      console.error('Error fetching drawing count:', err);
-      $error = 'Failed to fetch drawing count';
-      return 0;
-    }
-  }
-
-  async function generateDrawingId(email: string, userId: string): Promise<string> {
-    const prefix = getEmailPrefix(email);
-    const count = (await getDrawingCount(userId)) + 1;
-    return `${prefix}-${count}`;
-  }
-
-  async function saveDrawing(canvas: HTMLCanvasElement) {
-    if (!canvas) {
-      showToast('No canvas element found', 'error');
-      return;
-    }
-    if (!$sessionStore?.user) {
-      showToast('Please login to save drawings', 'error');
-      return;
-    }
-
-    $loading = true;
-    try {
-      await verifyRateLimits();
-      await persistDrawing(canvas);
-      showToast('Drawing saved successfully!', 'success');
-    } catch (err) {
-      handlePersistError(err);
-    } finally {
-      $loading = false;
-    }
-  }
-
-  async function verifyRateLimits() {
-    if (import.meta.env.DEV || import.meta.env.MODE === 'preview') {
-      console.log('Mock rate limit check: allowed');
-      return;
-    }
-    try {
-      console.log('Fetching rate limit check for user:', $sessionStore?.user.id);
-      const response = await fetch('/api/check-rate-limit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: $sessionStore?.user.id })
-      });
-
-      if (!response.ok) {
-        throw new Error('Rate limit service unavailable');
-      }
-
-      const result = await response.json();
-      if (result.blocked) {
-        throw new Error(result.message || 'You are temporarily banned due to excessive submissions');
-      }
-      if (result.limited) {
-        showToast(result.message || 'Warning: approaching submission limit', 'warning');
-      }
-    } catch (err) {
-      console.error('[Rate Limit]', err);
-      throw err;
-    }
-  }
-
-  async function persistDrawing(canvas: HTMLCanvasElement) {
-  try {
-    const imageData = canvas.toDataURL('image/png');
-    const createdAt = new Date().toISOString();
-    const drawingId = await generateDrawingId(
-      $sessionStore.user.email,
-      $sessionStore.user.id
-    );
-
-    const { error } = await supabase.from('drawings').insert({
-      id: crypto.randomUUID(), // Use this if 'id' is not auto-generated
-      drawing_id: drawingId,
-      title: 'Untitled', // Default title
-      image_data: imageData,
-      user_id: $sessionStore.user.id,
-      user_email: $sessionStore.user.email,
-      created_at: createdAt,
-      blocked: false,
-      likes: 0,
-      comments: {}, // Consider using null or an array if your DB expects it
+        return () => {
+            // Cleanup event listeners
+            canvas.removeEventListener('mousedown', startDrawing);
+            canvas.removeEventListener('mousemove', draw);
+            canvas.removeEventListener('mouseup', stopDrawing);
+            canvas.removeEventListener('mouseout', stopDrawing);
+            canvas.removeEventListener('touchstart', handleTouchStart);
+            canvas.removeEventListener('touchmove', handleTouchMove);
+            canvas.removeEventListener('touchend', stopDrawing);
+        };
     });
 
-    if (error) {
-      console.error('Failed to persist drawing:', error);
+    async function preloadDrawings() {
+        try {
+            isLoading = true;
+            const { data, error } = await supabase
+                .from('drawings')
+                .select('drawing_id, title, image_data')
+                .limit(5)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            drawings = data || [];
+            isLoading = false;
+        } catch (error) {
+            console.error('Error preloading drawings:', error);
+            errorMessage = 'Failed to load drawings';
+            isLoading = false;
+        }
     }
-  } catch (err) {
-    console.error('Unexpected error in persistDrawing:', err);
-  }
-}
 
+    function startDrawing(e) {
+        isDrawing = true;
+        [lastX, lastY] = getCoordinates(e);
+    }
 
-  function handlePersistError(error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to save drawing';
-    console.error('[DrawingApp] Save error:', error);
-    showToast(message, 'error');
-  }
+    function draw(e) {
+        if (!isDrawing) return;
 
-  function showToast(message: string, type: 'success' | 'error' | 'warning') {
-    clearTimeout(toastTimeout);
-    $toastState = { message, visible: true, type };
-    toastTimeout = setTimeout(() => {
-      $toastState.visible = false;
-    }, TOAST_DURATION);
-  }
+        e.preventDefault();
+        const [x, y] = getCoordinates(e);
 
-  function updateColor(newColor: string) {
-    selected = color = newColor;
-  }
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = brushColor;
+        ctx.lineWidth = brushSize;
+        ctx.stroke();
 
-  function updateSize(newSize: number) {
-    size = Math.max(1, Math.min(50, newSize));
-  }
+        [lastX, lastY] = [x, y];
+    }
 
-  function toggleMenu() {
-    showMenu = !showMenu;
-  }
+    function stopDrawing() {
+        isDrawing = false;
+    }
+
+    function getCoordinates(e) {
+        const rect = canvas.getBoundingClientRect();
+        let x, y;
+
+        if (e.type.startsWith('touch')) {
+            x = e.touches[0].clientX - rect.left;
+            y = e.touches[0].clientY - rect.top;
+        } else {
+            x = e.clientX - rect.left;
+            y = e.clientY - rect.top;
+        }
+
+        return [x, y];
+    }
+
+    function handleTouchStart(e) {
+        e.preventDefault();
+        startDrawing(e);
+    }
+
+    function handleTouchMove(e) {
+        e.preventDefault();
+        draw(e);
+    }
+
+    async function loadBackground() {
+        if (!drawingId.trim()) {
+            errorMessage = 'Please enter a Drawing ID';
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('drawings')
+                .select('image_data')
+                .eq('drawing_id', drawingId)
+                .single();
+
+            if (error) throw error;
+
+            if (data && data.image_data) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.src = data.image_data;
+                errorMessage = '';
+            } else {
+                errorMessage = 'No background image found for this drawing';
+                clearCanvas();
+            }
+        } catch (error) {
+            console.error('Error loading background:', error);
+            errorMessage = 'Failed to load drawing';
+        }
+    }
+
+    async function saveDrawing() {
+        const imageData = canvas.toDataURL('image/png');
+
+        try {
+            const { data: userData } = await supabase.auth.getUser();
+            const userId = userData?.user?.id || 'user-uuid-placeholder';
+            const userEmail = userData?.user?.email || 'user@example.com';
+
+            // Derive username from email
+            const username = userEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'user';
+
+            // Count user's drawings for sequence number
+            const { count, error: countError } = await supabase
+                .from('drawings')
+                .select('id', { count: 'exact' })
+                .eq('user_id', userId);
+
+            if (countError) throw countError;
+
+            const sequence = (count || 0) + 1;
+            const newDrawingId = `${username}-${sequence}`;
+
+            const { error } = await supabase
+                .from('drawings')
+                .insert({
+                    drawing_id: newDrawingId,
+                    image_data: imageData,
+                    title: 'New Drawing',
+                    user_id: userId,
+                    user_email: userEmail
+                });
+
+            if (error) throw error;
+
+            errorMessage = '';
+            alert('Drawing saved successfully with ID: ' + newDrawingId);
+            drawingId = newDrawingId;
+            await preloadDrawings();
+        } catch (error) {
+            console.error('Error saving drawing:', error);
+            errorMessage = 'Failed to save drawing: ' + error.message;
+        }
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function selectDrawing(id) {
+        drawingId = id;
+        showModal = false;
+        loadBackground();
+    }
+
+    function openModal() {
+        showModal = true;
+    }
 </script>
 
-{#if $loading}
-  <p>Loading...</p>
-{:else if $error}
-  <p>Error: {$error}</p>
-{:else if $sessionStore}
-  <DrawingCanvas color={color} size={size} {canvasStore} />
-  <DrawingControls {canvasStore} onSave={saveDrawing} onMenuToggle={toggleMenu} />
-  {#if showMenu}
-    <DrawingMenu 
-      colors={COLORS}
-      selected={selected}
-      size={size}
-      onColorChange={updateColor}
-      onSizeChange={updateSize}
-    />
-  {/if}
-{:else}
-  <CanvasShader message="You need to log in to start creating">
-    <DrawingCanvas color={color} size={size} disabled />
-  </CanvasShader>
-{/if}
-
-<Toast 
-  message={$toastState.message} 
-  show={$toastState.visible} 
-  type={$toastState.type} 
-/>
-
 <style>
-
-  /* Ensure Toast is above everything */
-  :global(.toast) {
-    position: fixed;
-    z-index: 1100; /* Higher than all navbar elements and controls */
-  }
-
-  /* Ensure canvas stays below controls but above background */
-  :global(.drawing-canvas) {
-    position: relative;
-    z-index: 500; /* Below controls but above general content */
-  }
-
-  /* Optional: Add padding to account for fixed navbar height */
-  :global(main) {
-    padding-top: 80px; /* Adjust based on navbar height (approx 60px + margin) */
-  }
+    .container {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #f0f0f0;
+        padding: 20px;
+    }
+    canvas {
+        border: 2px solid #333;
+        background-color: white;
+    }
+    .controls {
+        margin: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    button,
+    input,
+    select {
+        padding: 8px;
+        font-size: 16px;
+    }
+    .error {
+        color: red;
+        margin-top: 10px;
+    }
+    .modal {
+        position: fixed;
+        top: 50%;
+        leftSteven Seminsky
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        max-width: 500px;
+        width: 100%;
+        z-index: 1000;
+    }
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+    .modal-content {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .drawing-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+    .drawing-item:hover {
+        background: #f5f5f5;
+    }
+    .drawing-preview {
+        width: 80px;
+        height: 60px;
+        object-fit: cover;
+        margin-right: 10px;
+        border: 1px solid #ddd;
+    }
+    .drawing-info {
+        flex: 1;
+    }
+    .modal-buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
 </style>
+
+<div class="container">
+    <div class="controls">
+        <input type="text" bind:value={drawingId} placeholder="Enter Drawing ID" />
+        <button on:click={openModal}>Choose Drawing</button>
+        <button on:click={loadBackground}>Load Background</button>
+        <button on:click={saveDrawing}>Save Drawing</button>
+        <select bind:value={brushColor}>
+            {#each colors as color}
+                <option value={color}>{color}</option>
+            {/each}
+        </select>
+        <input type="range" bind:value={brushSize} min="1" max="50" />
+        <button on:click={clearCanvas}>Clear Canvas</button>
+    </div>
+    {#if errorMessage}
+        <p class="error">{errorMessage}</p>
+    {/if}
+    <canvas bind:this={canvas} width="800" height="600"></canvas>
+</div>
+
+{#if showModal}
+    <div class="modal-overlay" on:click={() => (showModal = false)}></div>
+    <div class="modal">
+        <h2>Select a Drawing</h2>
+        <div class="modal-content">
+            {#if isLoading}
+                <p>Loading drawings...</p>
+            {:else if drawings.length === 0}
+                <p>No drawings found.</p>
+            {:else}
+                {#each drawings as drawing}
+                    <div
+                        class="drawing-item"
+                        on:click={() => selectDrawing(drawing.drawing_id)}
+                    >
+                        {#if drawing.image_data}
+                            <img
+                                src={drawing.image_data}
+                                alt="Preview"
+                                class="drawing-preview"
+                            />
+                        {:else}
+                            <div
+                                class="drawing-preview"
+                                style="display: flex; align-items: center; justify-content: center; background: #eee;"
+                            >
+                                No Image
+                            </div>
+                        {/if}
+                        <div class="drawing-info">
+                            <strong>{drawing.drawing_id}</strong>
+                            {#if drawing.title}
+                                <span> - {drawing.title}</span>
+                            {/if}
+                        </div>
+                    </div>
+                {/each}
+            {/if}
+        </div>
+        <div class="modal-buttons">
+            <button on:click={() => (showModal = false)}>Close</button>
+        </div>
+    </div>
+{/if}

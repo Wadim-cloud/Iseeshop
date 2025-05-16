@@ -1,4 +1,4 @@
-import { f as escape_html, b as attr, p as pop, a as push, h as head } from "../../../chunks/index.js";
+import { d as escape_html, b as attr, p as pop, a as push, h as head } from "../../../chunks/index.js";
 function Hope($$payload, $$props) {
   push();
   let imageWidth = 1, imageHeight = 1;

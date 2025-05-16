@@ -1464,14 +1464,6 @@ function store_get(store_values, store_name, store) {
   store_values[store_name][1] = unsub;
   return store_values[store_name][2];
 }
-function store_set(store, value) {
-  store.set(value);
-  return value;
-}
-function store_mutate(store_values, store_name, store, expression) {
-  store_set(store, store_get(store_values, store_name, store));
-  return expression;
-}
 function unsubscribe_stores(store_values) {
   for (const store_name in store_values) {
     store_values[store_name][1]();
@@ -1493,57 +1485,55 @@ function ensure_array_like(array_like_or_iterator) {
   return [];
 }
 export {
-  set_active_reaction as A,
-  set_active_effect as B,
-  is_array as C,
-  active_effect as D,
-  active_reaction as E,
-  init_operations as F,
-  get_first_child as G,
+  is_array as A,
+  active_effect as B,
+  active_reaction as C,
+  init_operations as D,
+  get_first_child as E,
+  HYDRATION_START as F,
+  HYDRATION_END as G,
   HYDRATION_ERROR as H,
-  HYDRATION_START as I,
-  HYDRATION_END as J,
-  hydration_failed as K,
-  clear_text_content as L,
-  array_from as M,
-  component_root as N,
-  create_text as O,
-  branch as P,
-  push$1 as Q,
-  component_context as R,
-  pop$1 as S,
-  set as T,
-  LEGACY_PROPS as U,
-  get as V,
-  flushSync as W,
-  mutable_source as X,
-  render as Y,
-  setContext as Z,
-  BROWSER as _,
+  hydration_failed as I,
+  clear_text_content as J,
+  array_from as K,
+  component_root as L,
+  create_text as M,
+  branch as N,
+  push$1 as O,
+  component_context as P,
+  pop$1 as Q,
+  set as R,
+  LEGACY_PROPS as S,
+  get as T,
+  flushSync as U,
+  mutable_source as V,
+  render as W,
+  setContext as X,
+  BROWSER as Y,
   push as a,
   attr as b,
   current_component as c,
-  attr_class as d,
+  escape_html as d,
   ensure_array_like as e,
-  escape_html as f,
+  attr_class as f,
   stringify as g,
   head as h,
   attr_style as i,
-  fallback as j,
-  bind_props as k,
-  copy_payload as l,
-  assign_payload as m,
-  getContext as n,
-  noop as o,
+  getContext as j,
+  safe_not_equal as k,
+  subscribe_to_store as l,
+  copy_payload as m,
+  noop as n,
+  assign_payload as o,
   pop as p,
-  safe_not_equal as q,
-  subscribe_to_store as r,
+  fallback as q,
+  run_all as r,
   store_get as s,
-  run_all as t,
+  bind_props as t,
   unsubscribe_stores as u,
   spread_props as v,
-  store_set as w,
-  store_mutate as x,
-  get_next_sibling as y,
-  define_property as z
+  get_next_sibling as w,
+  define_property as x,
+  set_active_reaction as y,
+  set_active_effect as z
 };

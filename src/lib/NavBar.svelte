@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { goto, invalidateAll } from '$app/navigation';
   import { derived, writable } from 'svelte/store';
   import AuthModal from '$lib/AuthModal.svelte';
@@ -22,52 +22,37 @@
   async function fetchNotifications() {
     const user = await getCurrentUser();
     if (!user) return;
-
     const { data, error } = await supabase
       .from('notifications')
       .select('id, message, drawing_id, sent, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      notifications = data;
-    }
+    if (!error && data) notifications = data;
   }
 
   async function handleNotificationClick(notification) {
     await markNotificationsAsRead(notification.user_id, [notification.id]);
-    if (notification.drawing_id) {
-      goto(`/gallery/${notification.drawing_id}`);
-    }
+    if (notification.drawing_id) goto(`/gallery/${notification.drawing_id}`);
   }
 
-  $: if (showNotifications) {
-    fetchNotifications();
-  }
+  $: if (showNotifications) fetchNotifications();
 
   function handleSignInClick() {
     showAuthModal = true;
   }
 
-  const gridCols = 10;
-  const gridRows = 5;
+  const gridCols = 10, gridRows = 5;
+  const blockCount = gridCols * gridRows;
 
   function createBlocks() {
-    return Array(50).fill(null).map((_, i) => ({
-      id: i,
-      isBlack: false,
-      isBlue: false,
-      isRed: false,
-      navigateTo: null
+    return Array(blockCount).fill(null).map((_, i) => ({
+      id: i, isBlack: false, isBlue: false, isRed: false, navigateTo: null
     }));
   }
 
-  let blocks1 = createBlocks();
-  let blocks2 = createBlocks();
-  let blocks3 = createBlocks();
-  let blackBlocks1 = [];
-  let blackBlocks2 = [];
-  let blackBlocks3 = [];
+  let blocks1 = createBlocks(), blocks2 = createBlocks(), blocks3 = createBlocks();
+  let blackBlocks1 = [], blackBlocks2 = [], blackBlocks3 = [];
 
   function notifyLoginRequired() {
     alert('Please log in to access this feature.');
@@ -75,11 +60,9 @@
   }
 
   function handleMouseMove(event, blocks, updateBlocks) {
-    const navbar = event.currentTarget;
-    const rect = navbar.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
-
     const blockWidth = 200 / gridCols;
     const blockHeight = 50 / gridRows;
     const col = Math.floor(mouseX / blockWidth);
@@ -124,10 +107,7 @@
   }
 
   function handleClick(index, blocks, updateBlocks, blackBlocks) {
-    if (!$user) {
-      notifyLoginRequired();
-      return;
-    }
+    if (!$user) return notifyLoginRequired();
 
     if (blackBlocks.length < 2 && !blocks[index].isBlack) {
       const updated = blocks.map((block, i) => ({
@@ -138,13 +118,7 @@
       }));
 
       blackBlocks.push(index);
-
-      if (blackBlocks.length === 1) {
-        updated[index].navigateTo = '/create';
-      } else if (blackBlocks.length === 2) {
-        updated[index].navigateTo = '/gallery';
-      }
-
+      updated[index].navigateTo = blackBlocks.length === 1 ? '/create' : '/gallery';
       updateBlocks([...updated]);
     } else if (blocks[index].isBlack && blocks[index].navigateTo) {
       goto(blocks[index].navigateTo);
@@ -156,15 +130,14 @@
   }
 
   function navigateTo(route) {
-    if ($user) {
-      goto(route);
-    } else {
-      notifyLoginRequired();
-    }
+    if ($user) goto(route);
+    else notifyLoginRequired();
   }
 </script>
 
+<!-- NAVBAR -->
 <div class="navbar-row">
+  <!-- Row 1 -->
   <div class="navbar" on:mousemove={(e) => handleMouseMove(e, blocks1, (b) => (blocks1 = b))} on:mouseleave={() => handleMouseLeave((b) => (blocks1 = b), blocks1)}>
     {#each blocks1 as block (block.id)}
       <div
@@ -173,11 +146,12 @@
         class:blue={block.isBlue}
         class:red={block.isRed}
         on:click={() => handleClick(block.id, blocks1, (b) => (blocks1 = b), blackBlocks1)}
-      ></div>
+      />
     {/each}
   </div>
   <div class="label-box" on:click={() => navigateTo('/create')}>Create</div>
 
+  <!-- Row 2 -->
   <div class="navbar" on:mousemove={(e) => handleMouseMove(e, blocks2, (b) => (blocks2 = b))} on:mouseleave={() => handleMouseLeave((b) => (blocks2 = b), blocks2)}>
     {#each blocks2 as block (block.id)}
       <div
@@ -186,12 +160,13 @@
         class:alt-blue={block.isBlue}
         class:alt-red={block.isRed}
         on:click={() => handleClick(block.id, blocks2, (b) => (blocks2 = b), blackBlocks2)}
-      ></div>
+      />
     {/each}
   </div>
   <div class="label-box" on:click={() => navigateTo('/todo')}>List</div>
   <div class="label-box" on:click={() => navigateTo('/gallery')}>Gallery</div>
 
+  <!-- Row 3 -->
   <div class="navbar" on:mousemove={(e) => handleMouseMove(e, blocks3, (b) => (blocks3 = b))} on:mouseleave={() => handleMouseLeave((b) => (blocks3 = b), blocks3)}>
     {#each blocks3 as block (block.id)}
       <div
@@ -200,10 +175,11 @@
         class:alt2-blue={block.isBlue}
         class:alt2-red={block.isRed}
         on:click={() => handleClick(block.id, blocks3, (b) => (blocks3 = b), blackBlocks3)}
-      ></div>
+      />
     {/each}
   </div>
 
+  <!-- Menu Bar -->
   <div class="menu-bar">
     {#if $user}
       <div class="menu-block" on:click={() => (showNotifications = !showNotifications)} title="Notifications">
@@ -212,19 +188,18 @@
           <span class="badge">{$notificationStore.unreadCount}</span>
         {/if}
       </div>
-      <div class="menu-block logout" on:click={onAuthToggle} title="Logout"></div>
-      <div class="menu-block avatar" on:click={() => navigateTo('/settings')} title="Profile">
-        <div class="avatar-container">
-          <img src={$avatarUrl} alt="avatar" class="avatar-image" />
-        </div>
+      <div class="menu-block logout" on:click={onAuthToggle} title="Logout">🚪</div>
+      <div class="menu-block avatar" on:click={() => navigateTo('/profile')} title="Profile">
+        <img src={$avatarUrl} alt="avatar" class="avatar-image" />
       </div>
     {:else}
-      <div class="menu-block login" on:click={handleSignInClick} title="Login"></div>
-      <div class="menu-block about" on:click={() => navigateTo('/about')} title="About"></div>
+      <div class="menu-block login" on:click={handleSignInClick} title="Login">🔑</div>
+      <div class="menu-block about" on:click={() => navigateTo('/about')} title="About">ℹ️</div>
     {/if}
   </div>
 </div>
 
+<!-- Notifications Popup -->
 {#if showNotifications}
   <div class="notifications-popup">
     {#each notifications as n}
@@ -242,6 +217,7 @@
   </div>
 {/if}
 
+<!-- Auth Modal -->
 {#if showAuthModal}
   <AuthModal
     bind:show={showAuthModal}
@@ -251,9 +227,7 @@
       localStorage.removeItem('sb-redirect');
       goto(redirectTo, { replaceState: true });
     }}
-    on:authError={() => {
-      showAuthModal = false;
-    }}
+    on:authError={() => (showAuthModal = false)}
   />
 {/if}
 

@@ -1,7 +1,22 @@
-import { s as store_get, f as escape_html, e as ensure_array_like, b as attr, u as unsubscribe_stores, p as pop, a as push } from "../../../chunks/index.js";
+import { q as fallback, f as attr_class, d as escape_html, t as bind_props, s as store_get, e as ensure_array_like, b as attr, u as unsubscribe_stores, p as pop, a as push } from "../../../chunks/index.js";
 import { o as onDestroy } from "../../../chunks/index-server.js";
 import { c as cleanupSubscriptions, n as notificationStore } from "../../../chunks/notifications.js";
-import { T as Toast } from "../../../chunks/Toast.js";
+function Toast($$payload, $$props) {
+  let message = $$props["message"];
+  let show = $$props["show"];
+  let type = fallback($$props["type"], "success");
+  if (show) {
+    $$payload.out += "<!--[-->";
+    $$payload.out += `<div${attr_class("toast svelte-1q32h6p", void 0, {
+      "success": type === "success",
+      "error": type === "error"
+    })}>${escape_html(message)}</div>`;
+  } else {
+    $$payload.out += "<!--[!-->";
+  }
+  $$payload.out += `<!--]-->`;
+  bind_props($$props, { message, show, type });
+}
 function _page($$payload, $$props) {
   push();
   var $$store_subs;

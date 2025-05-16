@@ -1,4 +1,4 @@
-import { l as copy_payload, m as assign_payload, k as bind_props, p as pop, a as push, e as ensure_array_like, d as attr_class, s as store_get, f as escape_html, b as attr, u as unsubscribe_stores, h as head } from "../../chunks/index.js";
+import { m as copy_payload, o as assign_payload, t as bind_props, p as pop, a as push, e as ensure_array_like, f as attr_class, s as store_get, d as escape_html, b as attr, u as unsubscribe_stores, h as head } from "../../chunks/index.js";
 import { s as supabase } from "../../chunks/supabase.js";
 import "../../chunks/client.js";
 import { d as derived, w as writable } from "../../chunks/exports.js";
@@ -20,8 +20,10 @@ function NavBar($$payload, $$props) {
   const user = derived(sessionStore, ($session) => $session?.user || null);
   const avatarUrl = derived(user, ($user) => $user?.user_metadata?.avatar_url || "/default-avatar.png");
   derived(user, ($user) => $user?.user_metadata?.full_name || $user?.email?.split("@")[0] || "User");
+  const gridCols = 10, gridRows = 5;
+  const blockCount = gridCols * gridRows;
   function createBlocks() {
-    return Array(50).fill(null).map((_, i) => ({
+    return Array(blockCount).fill(null).map((_, i) => ({
       id: i,
       isBlack: false,
       isBlue: false,
@@ -29,9 +31,7 @@ function NavBar($$payload, $$props) {
       navigateTo: null
     }));
   }
-  let blocks1 = createBlocks();
-  let blocks2 = createBlocks();
-  let blocks3 = createBlocks();
+  let blocks1 = createBlocks(), blocks2 = createBlocks(), blocks3 = createBlocks();
   sessionStore.set(session);
   let $$settled = true;
   let $$inner_payload;
@@ -76,10 +76,10 @@ function NavBar($$payload, $$props) {
       } else {
         $$payload2.out += "<!--[!-->";
       }
-      $$payload2.out += `<!--]--></div> <div class="menu-block logout svelte-12fzeem" title="Logout"></div> <div class="menu-block avatar svelte-12fzeem" title="Profile"><div class="avatar-container svelte-12fzeem"><img${attr("src", store_get($$store_subs ??= {}, "$avatarUrl", avatarUrl))} alt="avatar" class="avatar-image svelte-12fzeem"></div></div>`;
+      $$payload2.out += `<!--]--></div> <div class="menu-block logout svelte-12fzeem" title="Logout">🚪</div> <div class="menu-block avatar svelte-12fzeem" title="Profile"><img${attr("src", store_get($$store_subs ??= {}, "$avatarUrl", avatarUrl))} alt="avatar" class="avatar-image svelte-12fzeem"></div>`;
     } else {
       $$payload2.out += "<!--[!-->";
-      $$payload2.out += `<div class="menu-block login svelte-12fzeem" title="Login"></div> <div class="menu-block about svelte-12fzeem" title="About"></div>`;
+      $$payload2.out += `<div class="menu-block login svelte-12fzeem" title="Login">🔑</div> <div class="menu-block about svelte-12fzeem" title="About">ℹ️</div>`;
     }
     $$payload2.out += `<!--]--></div></div> `;
     {
