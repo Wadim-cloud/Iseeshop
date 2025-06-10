@@ -34,6 +34,7 @@ declare module '$env/static/private' {
 	export const SUPABASE_SERVICE_ROLE_KEY: string;
 	export const VITE_PUBLIC_VAPID_KEY: string;
 	export const VAPID_PRIVATE_KEY: string;
+	export const VITE_SUPABASE_FUNCTIONS_URL: string;
 	export const VITE_PUBLIC_FIREBASE_API_KEY: string;
 	export const VITE_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: string;
 	export const VITE_PUBLIC_FIREBASE_APP_ID: string;
@@ -50,8 +51,6 @@ declare module '$env/static/private' {
 	export const npm_config_global_prefix: string;
 	export const CONDA_SHLVL: string;
 	export const TERM_PROGRAM_VERSION: string;
-	export const CONDA_PROMPT_MODIFIER: string;
-	export const ZDOTDIR: string;
 	export const ORIGINAL_XDG_CURRENT_DESKTOP: string;
 	export const MallocNanoZone: string;
 	export const COLOR: string;
@@ -63,7 +62,6 @@ declare module '$env/static/private' {
 	export const npm_config_globalconfig: string;
 	export const CONDA_EXE: string;
 	export const SSH_AUTH_SOCK: string;
-	export const VSCODE_PROFILE_INITIALIZED: string;
 	export const __CF_USER_TEXT_ENCODING: string;
 	export const npm_execpath: string;
 	export const _CE_CONDA: string;
@@ -71,10 +69,9 @@ declare module '$env/static/private' {
 	export const npm_package_json: string;
 	export const npm_config_engine_strict: string;
 	export const _: string;
+	export const LaunchInstanceID: string;
 	export const npm_config_userconfig: string;
 	export const npm_config_init_module: string;
-	export const USER_ZDOTDIR: string;
-	export const CONDA_PREFIX: string;
 	export const __CFBundleIdentifier: string;
 	export const npm_command: string;
 	export const PWD: string;
@@ -90,7 +87,6 @@ declare module '$env/static/private' {
 	export const npm_package_version: string;
 	export const _CE_M: string;
 	export const XPC_SERVICE_NAME: string;
-	export const VSCODE_INJECTION: string;
 	export const PYENV_SHELL: string;
 	export const SHLVL: string;
 	export const HOME: string;
@@ -101,14 +97,15 @@ declare module '$env/static/private' {
 	export const npm_lifecycle_script: string;
 	export const VSCODE_GIT_IPC_HANDLE: string;
 	export const NVM_BIN: string;
-	export const CONDA_DEFAULT_ENV: string;
 	export const npm_config_user_agent: string;
 	export const VSCODE_GIT_ASKPASS_NODE: string;
 	export const GIT_ASKPASS: string;
 	export const DISPLAY: string;
+	export const SECURITYSESSIONID: string;
 	export const npm_node_execpath: string;
 	export const npm_config_prefix: string;
 	export const COLORTERM: string;
+	export const DEBUG: string;
 	export const NODE_ENV: string;
 }
 
@@ -150,6 +147,7 @@ declare module '$env/dynamic/private' {
 		SUPABASE_SERVICE_ROLE_KEY: string;
 		VITE_PUBLIC_VAPID_KEY: string;
 		VAPID_PRIVATE_KEY: string;
+		VITE_SUPABASE_FUNCTIONS_URL: string;
 		VITE_PUBLIC_FIREBASE_API_KEY: string;
 		VITE_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: string;
 		VITE_PUBLIC_FIREBASE_APP_ID: string;
@@ -166,8 +164,6 @@ declare module '$env/dynamic/private' {
 		npm_config_global_prefix: string;
 		CONDA_SHLVL: string;
 		TERM_PROGRAM_VERSION: string;
-		CONDA_PROMPT_MODIFIER: string;
-		ZDOTDIR: string;
 		ORIGINAL_XDG_CURRENT_DESKTOP: string;
 		MallocNanoZone: string;
 		COLOR: string;
@@ -179,7 +175,6 @@ declare module '$env/dynamic/private' {
 		npm_config_globalconfig: string;
 		CONDA_EXE: string;
 		SSH_AUTH_SOCK: string;
-		VSCODE_PROFILE_INITIALIZED: string;
 		__CF_USER_TEXT_ENCODING: string;
 		npm_execpath: string;
 		_CE_CONDA: string;
@@ -187,10 +182,9 @@ declare module '$env/dynamic/private' {
 		npm_package_json: string;
 		npm_config_engine_strict: string;
 		_: string;
+		LaunchInstanceID: string;
 		npm_config_userconfig: string;
 		npm_config_init_module: string;
-		USER_ZDOTDIR: string;
-		CONDA_PREFIX: string;
 		__CFBundleIdentifier: string;
 		npm_command: string;
 		PWD: string;
@@ -206,7 +200,6 @@ declare module '$env/dynamic/private' {
 		npm_package_version: string;
 		_CE_M: string;
 		XPC_SERVICE_NAME: string;
-		VSCODE_INJECTION: string;
 		PYENV_SHELL: string;
 		SHLVL: string;
 		HOME: string;
@@ -217,14 +210,15 @@ declare module '$env/dynamic/private' {
 		npm_lifecycle_script: string;
 		VSCODE_GIT_IPC_HANDLE: string;
 		NVM_BIN: string;
-		CONDA_DEFAULT_ENV: string;
 		npm_config_user_agent: string;
 		VSCODE_GIT_ASKPASS_NODE: string;
 		GIT_ASKPASS: string;
 		DISPLAY: string;
+		SECURITYSESSIONID: string;
 		npm_node_execpath: string;
 		npm_config_prefix: string;
 		COLORTERM: string;
+		DEBUG: string;
 		NODE_ENV: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;

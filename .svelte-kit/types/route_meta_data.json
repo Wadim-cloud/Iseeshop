@@ -1,7 +1,11 @@
 {
 	"/": [],
 	"/about": [],
+	"/api/collab/sessions": [
+		"src/routes/api/collab/sessions/+server.js"
+	],
 	"/auth/callback": [],
+	"/collaborate": [],
 	"/create": [
 		"src/routes/create/+page.server.ts"
 	],
@@ -11,11 +15,13 @@
 	"/gallery/checkout": [],
 	"/gallery/[id]": [],
 	"/playground": [],
+	"/profile": [],
 	"/sales": [
 		"src/routes/sales/+page.server.ts"
 	],
 	"/settings": [],
 	"/settings/admin": [],
 	"/shaders-filters": [],
+	"/test": [],
 	"/todo": []
 }

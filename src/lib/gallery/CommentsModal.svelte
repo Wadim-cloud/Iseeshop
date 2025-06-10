@@ -3,13 +3,14 @@
   import { user } from '$lib/utils/auth';
   import { onMount } from 'svelte';
   import AuthModal from '$lib/AuthModal.svelte';
+  import { commentCounts } from './stores';
 
-  export let id: string | undefined; // UUID or TEXT from drawings.id
-  export let drawing_id: string | undefined; // Public-facing drawing_id for display
+  export let id: string | undefined; // UUID (drawings.id)
+  export let drawing_id: string | undefined; // Public-facing ID (e.g., thijsvinke-1)
   export let onClose: () => void;
 
   type Comment = {
-    id: string; // UUID from comments.id
+    id: string;
     user_id: string;
     content: string;
     created_at: string;
@@ -36,7 +37,6 @@
     });
   }
 
-  // Get display name from user store
   function getDisplayName(userId: string): string {
     if ($user && $user.id === userId && $user.email) {
       return $user.email.split('@')[0];
@@ -44,7 +44,6 @@
     return userId.slice(0, 8);
   }
 
-  // Fetch comments from the new comments table
   async function fetchComments() {
     if (!id) {
       error = 'Cannot load comments: Missing drawing UUID';
@@ -73,6 +72,11 @@
           display_name: comment.display_name || getDisplayName(comment.user_id)
         }));
         console.log('Fetched comments:', comments);
+        // Update comment count in store
+        commentCounts.update(counts => ({
+          ...counts,
+          [id]: comments.length
+        }));
       }
     } catch (err) {
       error = `Unexpected error loading comments: ${err.message}`;
@@ -82,7 +86,6 @@
     loading = false;
   }
 
-  // Post a new comment to the comments table
   async function postComment() {
     if (!$user || !newComment.trim()) return;
     if (!id) {
@@ -141,24 +144,31 @@
 
 <div class="modal-overlay" on:click={onClose}>
   <div class="modal-content" on:click|stopPropagation>
-    <button class="close-button" on:click={onClose}>×</button>
-    <h2>Comments for Drawing #{drawing_id || 'Unknown'}</h2>
+    <button class="close-button" on:click={onClose}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <h2>Comments for {drawing_id}</h2>
+
+    {#if error}
+      <div class="error">{error}</div>
+    {/if}
 
     {#if loading}
-      <p>Loading comments...</p>
-    {:else if error}
-      <p class="error">{error}</p>
-      <button class="retry-button" on:click={fetchComments}>Retry</button>
+      <div class="loading">Loading comments...</div>
     {:else if comments.length === 0}
-      <p>No comments yet. Be the first to comment!</p>
+      <div class="no-comments">No comments yet.</div>
     {:else}
       <div class="comments-list">
         {#each comments as comment (comment.id)}
           <div class="comment">
-            <p>
-              <strong class="username">{comment.display_name || 'User'}</strong>: {comment.content}
-            </p>
-            <small>{new Date(comment.created_at).toLocaleString()}</small>
+            <div class="comment-header">
+              <span class="comment-author">{comment.display_name}</span>
+              <span class="comment-date">{new Date(comment.created_at).toLocaleString()}</span>
+            </div>
+            <p class="comment-content">{comment.content}</p>
           </div>
         {/each}
       </div>
@@ -168,39 +178,26 @@
       <div class="comment-form">
         <textarea
           bind:value={newComment}
-          placeholder="Add a comment..."
+          placeholder="Write a comment..."
           rows="4"
           disabled={loading}
         ></textarea>
-        <button
-          class="comment-button"
-          on:click={postComment}
-          disabled={loading || !newComment.trim()}
-        >
+        <button on:click={postComment} disabled={loading || !newComment.trim()}>
           Post Comment
         </button>
       </div>
     {:else}
-      <p>
-        Please <button class="link-button" on:click={handleLoginPrompt}>log in</button> to post a comment.
-      </p>
+      <div class="login-prompt">
+        <p>Please log in to post a comment.</p>
+        <button on:click={handleLoginPrompt}>Log In</button>
+      </div>
+    {/if}
+
+    {#if showAuthModal}
+      <AuthModal onClose={() => (showAuthModal = false)} />
     {/if}
   </div>
 </div>
-
-{#if showAuthModal}
-  <AuthModal
-    bind:show={showAuthModal}
-    on:authSuccess={() => {
-      showAuthModal = false;
-      fetchComments();
-    }}
-    on:authError={({ detail }) => {
-      error = detail.message;
-      showAuthModal = false;
-    }}
-  />
-{/if}
 
 <style>
   .modal-overlay {
@@ -217,9 +214,9 @@
   }
 
   .modal-content {
-    background: white;
-    padding: 2rem;
+    background: #fff;
     border-radius: 8px;
+    padding: 24px;
     max-width: 500px;
     width: 90%;
     max-height: 80vh;
@@ -229,112 +226,114 @@
 
   .close-button {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 8px;
+    right: 8px;
     background: none;
     border: none;
-    font-size: 1.5rem;
     cursor: pointer;
+    padding: 4px;
   }
 
   h2 {
-    margin-top: 0;
-    font-size: 1.5rem;
+    margin: 0 0 16px;
+    font-size: 20px;
     color: #333;
+  }
+
+  .error {
+    color: #d32f2f;
+    margin-bottom: 16px;
+  }
+
+  .loading {
+    text-align: center;
+    color: #666;
+    margin: 16px 0;
+  }
+
+  .no-comments {
+    text-align: center;
+    color: #666;
+    margin: 16px 0;
   }
 
   .comments-list {
-    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
   }
 
   .comment {
-    margin-bottom: 0.75rem;
-    padding: 0.5rem;
-    background: #f8f9fa;
-    border-radius: 4px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 12px;
   }
 
-  .comment p {
-    margin: 0;
-    font-size: 0.9rem;
+  .comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
   }
 
-  .username {
-    font-weight: bold;
+  .comment-author {
+    font-weight: 600;
     color: #333;
-    margin-right: 0.5rem;
   }
 
-  .comment small {
+  .comment-date {
+    font-size: 12px;
     color: #666;
-    font-size: 0.8rem;
-    display: block;
-    margin-top: 0.25rem;
+  }
+
+  .comment-content {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
   }
 
   .comment-form {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    gap: 12px;
   }
 
-  .comment-form textarea {
+  textarea {
     width: 100%;
-    padding: 0.5rem;
+    padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     resize: vertical;
-    font-size: 0.9rem;
+    font-size: 14px;
   }
 
-  .comment-button {
+  .comment-form button {
     align-self: flex-end;
-    padding: 0.5rem 1rem;
-    background-color: #4CAF50;
-    color: white;
+    padding: 8px 16px;
+    background: #4caf50;
+    color: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    font-size: 14px;
   }
 
-  .comment-button:hover {
-    background-color: #45a049;
-  }
-
-  .comment-button:disabled {
-    background-color: #cccccc;
+  .comment-form button:disabled {
+    background: #ccc;
     cursor: not-allowed;
   }
 
-  .error {
-    color: #e74c3c;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+  .login-prompt {
+    text-align: center;
+    color: #666;
   }
 
-  .retry-button {
-    padding: 0.25rem 0.5rem;
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
+  .login-prompt button {
+    padding: 8px 16px;
+    background: #1976d2;
+    color: #fff;
+    border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8rem;
-    margin-bottom: 1rem;
-  }
-
-  .link-button {
-    background: none;
-    border: none;
-    color: #4CAF50;
-    cursor: pointer;
-    font-size: 0.9rem;
-    text-decoration: underline;
-    padding: 0;
-  }
-
-  .link-button:hover {
-    color: #45a049;
+    font-size: 14px;
   }
 </style>

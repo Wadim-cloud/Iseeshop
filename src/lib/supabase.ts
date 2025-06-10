@@ -1,4 +1,3 @@
-// src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 import { browser } from '$app/environment';
 import { replaceState } from '$app/navigation';
