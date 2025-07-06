@@ -1,6 +1,6 @@
 import { supabase } from '$lib/supabase';
 import { get } from 'svelte/store';
-import { cartStore, cartActions } from './stores';
+import { cartStore, cartActions } from '$lib/gallery/stores';
 
 // Define 3D objects with their prices
 const objects3D = [
@@ -33,13 +33,22 @@ export interface PurchaseResult {
   error?: string;
 }
 
-export async function completePurchase(buyerInfo: BuyerInfo): Promise<PurchaseResult> {
+export async function completePurchase(
+  buyerInfo: BuyerInfo,
+  cartItems: Array<{ drawingId: string; selected3DObject: string }>,
+  totalAmount: number
+): Promise<PurchaseResult> {
+  if (!supabase) {
+    console.error('Supabase client not initialized');
+    return { success: false, error: 'Supabase client not initialized' };
+  }
+
   try {
-    // Log buyerInfo for debugging
-    console.log('completePurchase received buyerInfo:', buyerInfo);
+    // Log inputs for debugging
+    console.log('completePurchase received:', { buyerInfo, cartItems, totalAmount });
 
     // Validate buyerInfo
-    const requiredFields = ['name', 'email', 'address', 'city', 'state', 'zipCode', 'country'];
+    const requiredFields = ['name', 'email', 'address', 'city', 'zipCode', 'country'];
     const missingFields = requiredFields.filter(field => !buyerInfo[field]?.trim());
     if (missingFields.length > 0) {
       console.error('Missing fields:', missingFields);
@@ -58,7 +67,6 @@ export async function completePurchase(buyerInfo: BuyerInfo): Promise<PurchaseRe
       };
     }
 
-    const cartItems = get(cartStore);
     if (!cartItems || cartItems.length === 0) {
       console.error('Cart is empty');
       return {
@@ -80,8 +88,15 @@ export async function completePurchase(buyerInfo: BuyerInfo): Promise<PurchaseRe
       };
     });
 
-    // Calculate total amount
-    const totalAmount = orderItems.reduce((sum, item) => sum + item.price, 0);
+    // Verify totalAmount
+    const calculatedTotal = orderItems.reduce((sum, item) => sum + item.price, 0);
+    if (Math.abs(calculatedTotal - totalAmount) > 0.01) {
+      console.error('Total amount mismatch:', { calculatedTotal, providedTotal: totalAmount });
+      return {
+        success: false,
+        error: 'Total amount mismatch'
+      };
+    }
 
     // Create order
     const { data: orderData, error: orderError } = await supabase

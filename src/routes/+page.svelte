@@ -3,6 +3,7 @@
   import CanvasShader from '$lib/CanvasShader.svelte';
   import AuthModal from '$lib/AuthModal.svelte';
   import HomeComments from '$lib/HomeComments.svelte';
+  import FeatureModal from '$lib/FeaturesModal.svelte';
   import { supabase } from '$lib/supabase';
   import { onMount } from 'svelte';
   import { goto, invalidateAll } from '$app/navigation';
@@ -10,6 +11,7 @@
 
   let showAuthModal = false;
   let showCommentModal = false;
+  let showFeatureModal = false;
   let loading = true;
   let session = null;
 
@@ -25,13 +27,11 @@
     console.log('Root page mounted');
     try {
       const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Session check error:', error.message);
-      }
+      if (error) console.error('Session check error:', error.message);
+
       session = initialSession;
       console.log('Initial session:', session ? 'User logged in' : 'No user');
 
-      // Start cinematic sequence
       setTimeout(() => {
         loading = false;
         setTimeout(() => contentReady = true, 300);
@@ -44,26 +44,20 @@
 
       const redirectTo = $page.url.searchParams.get('redirect');
       if (redirectTo) {
-        console.log('Redirect param:', redirectTo);
         localStorage.setItem('sb-redirect', decodeURIComponent(redirectTo));
         if (!session) {
-          console.log('No session, showing auth modal');
           showAuthModal = true;
         } else {
-          console.log('User already signed in, redirecting to:', redirectTo);
           goto(decodeURIComponent(redirectTo), { replaceState: true });
         }
       }
 
       const { data: authListener } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.email);
         session = newSession;
-
         if (event === 'SIGNED_IN' && newSession) {
           await invalidateAll();
           const redirect = localStorage.getItem('sb-redirect') || '/';
           localStorage.removeItem('sb-redirect');
-          console.log('Redirecting after sign-in:', redirect);
           goto(redirect, { replaceState: true });
         }
       });
@@ -77,13 +71,14 @@
 
   function handleButtonClick() {
     if (session) {
-      console.log('User logged in, toggling comment modal');
       showCommentModal = true;
     } else {
-      console.log('No user, showing auth modal');
       showAuthModal = true;
     }
-    console.log('Modal states:', { showAuthModal, showCommentModal });
+  }
+
+  function handleFeaturesClick() {
+    showFeatureModal = true;
   }
 </script>
 
@@ -107,7 +102,6 @@
     </div>
     <div class="overlay-layer" class:fade-out={contentReady}></div>
 
-    <!-- Decorative elements -->
     <div class="deco-element top-right" class:visible={elementsVisible}></div>
     <div class="deco-element bottom-left" class:visible={elementsVisible}></div>
     <div class="deco-element center-glow" class:visible={elementsVisible}></div>
@@ -145,29 +139,27 @@
       {/if}
 
       {#if buttonVisible}
-        <div in:fade={{ duration: 800, delay: 500 }}>
-          <button
-            class="action-button"
-            on:click={handleButtonClick}
-            on:keydown={(e) => (e.key === 'Enter' || e.key === 'Space') && handleButtonClick()}
-            aria-label={session ? 'View comments' : 'Sign in to Pexos'}
-          >
+        <div class="button-group" in:fade={{ duration: 800, delay: 500 }}>
+          <button class="action-button" on:click={handleButtonClick}>
             <span class="button-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 {#if session}
-                  <path
-                    d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"
-                    fill="white"
-                  />
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" fill="white" />
                 {:else}
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8z"
-                    fill="white"
-                  />
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8z" fill="white" />
                 {/if}
               </svg>
             </span>
             {session ? 'View Comments' : 'Sign In'}
+          </button>
+
+          <button class="action-button secondary" on:click={handleFeaturesClick}>
+            <span class="button-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M3 13h2v-2H3v2zm4 0h2v-2H7v2zm4 0h10v-2H11v2z" fill="white" />
+              </svg>
+            </span>
+            View Features
           </button>
         </div>
       {/if}
@@ -176,15 +168,12 @@
 {/if}
 
 {#if showAuthModal}
-  <div class="modal-debug">Auth Modal should be visible</div>
   <AuthModal
     bind:show={showAuthModal}
     on:authSuccess={async () => {
-      console.log('Auth success event');
       await invalidateAll();
       const redirectTo = localStorage.getItem('sb-redirect') || '/';
       localStorage.removeItem('sb-redirect');
-      console.log('Redirecting after auth success:', redirectTo);
       goto(redirectTo, { replaceState: true });
     }}
     on:authError={({ detail }) => {
@@ -195,11 +184,32 @@
 {/if}
 
 {#if showCommentModal}
-  <div class="modal-debug">Comment Modal should be visible</div>
   <HomeComments bind:show={showCommentModal} />
 {/if}
 
+{#if showFeatureModal}
+  <FeatureModal onClose={() => (showFeatureModal = false)} />
+{/if}
+
 <style>
+  /* Existing styles preserved */
+
+  .button-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+
+  .action-button.secondary {
+    background: #004466;
+  }
+
+  .action-button.secondary:hover {
+    background: #005577;
+  }
+
   .loader-container, .hero-container {
     display: flex;
     height: 100vh;
@@ -363,6 +373,32 @@
     border: 1px solid rgba(0, 123, 255, 0.4);
     text-align: left;
   }
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.action-button.secondary {
+  background-color: #004466;
+}
+
+.action-button.secondary:hover {
+  background-color: #005577;
+}
+
+@media (max-width: 768px) {
+  .button-group {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+
+
 
   .action-button {
     display: flex;

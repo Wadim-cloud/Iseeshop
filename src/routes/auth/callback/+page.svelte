@@ -4,27 +4,24 @@
   import { onMount } from 'svelte';
 
   onMount(async () => {
-    console.log('Auth callback mounted');
-    const { data: { session }, error } = await supabase.auth.getSession();
-    console.log('Callback session:', session, 'Error:', error);
+    console.log('Auth callback started...');
+    const { data: { session }, error } = await supabase.auth.getSessionFromUrl();
+
     if (error) {
-      console.error('Callback error:', error.message);
+      console.error('OAuth callback error:', error.message);
       goto('/', { replaceState: true });
       return;
     }
+
     if (session) {
-      // Manually set cookies
-      document.cookie = `sb-access-token=${session.access_token}; Path=/; SameSite=Lax; Max-Age=31536000`;
-      document.cookie = `sb-refresh-token=${session.refresh_token}; Path=/; SameSite=Lax; Max-Age=31536000`;
-      console.log('Cookies set in callback:', {
-        accessToken: !!session.access_token,
-        refreshToken: !!session.refresh_token
-      });
-      const redirectTo = localStorage.getItem('sb-redirect') || '/';
+      document.cookie = `sb-access-token=${session.access_token}; Path=/; Max-Age=31536000`;
+      document.cookie = `sb-refresh-token=${session.refresh_token}; Path=/; Max-Age=31536000`;
+      const redirect = localStorage.getItem('sb-redirect') || '/';
       localStorage.removeItem('sb-redirect');
-      console.log('Redirecting from callback:', redirectTo);
-      goto(redirectTo, { replaceState: true });
+      console.log('Redirecting after login:', redirect);
+      goto(redirect, { replaceState: true });
     } else {
+      console.warn('No session returned from Supabase.');
       goto('/', { replaceState: true });
     }
   });

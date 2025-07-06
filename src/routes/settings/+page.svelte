@@ -1,277 +1,268 @@
-<script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { notificationStore, loadProfile, updateSettings, setupNotifications, cleanupSubscriptions } from '$lib/stores/notifications';
-  import { messaging } from '$lib/firebase';
-  import Toast from '$lib/Toast.svelte';
+<script>
+    import Floating3DModel from '$lib/Floating3DModel.svelte';
+    import { supabase } from '$lib/supabase';
+    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
 
-  $: ({ notifications, role, loading, error, success, toast } = $notificationStore);
+    const pageTitle = 'About Pexos';
+    const pageDescription = 'Learn more about Pexos, its creators, and the mission behind it.';
 
-async function handleSubmit() {
-  console.log('handleSubmit: Submitting settings:', notifications);
-  await updateSettings();
-}
+    let user = null;
+    let isCheckingAuth = true;
 
-function handleToggle(type: string, enabled: boolean) {
-  console.log(`handleToggle: Toggled ${type} to ${enabled}`);
-}
+    const modelConfig = {
+        stlFile: '/models/tshirt.stl',
+        defaultTextureImage: '/texture/boom.png',
+        width: '100%',
+        height: '400px',
+        backgroundColor: '#f0f0f0',
+        modelColor: '#cccccc',
+        floating: true,
+        rotationSpeedY: 0.5,
+        autoRotate: true,
+        enableZoom: true,
+    };
 
-onMount(async () => {
-  console.log('onMount: Loading profile and setting up notifications');
-  await loadProfile();
-  await setupNotifications();
-});
+    let pledge = {
+        cpu: false,
+        gpu: false,
+        maxCpu: '',
+        maxGpu: '',
+        maxHours: '',
+        idleOnly: false,
+        customHours: false,
+        fromHour: '',
+        toHour: '',
+        days: []
+    };
 
-onDestroy(() => {
-  console.log('onDestroy: Cleaning up subscriptions');
-  cleanupSubscriptions();
-});
+    const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    async function submitPledge() {
+        const { data, error } = await supabase.from('resource_pledges').insert([{
+            user_id: user?.id,
+            ...pledge
+        }]);
+        if (!error) {
+            await sendPledgeEmail(pledge);
+            alert('Thank you for pledging!');
+        } else {
+            alert('Something went wrong.');
+        }
+    }
+
+    async function sendPledgeEmail(pledgeData) {
+        await fetch('/api/send-pledge-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                to: 'w.v.seminsky@gmail.com',
+                subject: 'New Resource Pledge Received',
+                text: `New pledge received:\n\nCPU: ${pledgeData.cpu}\nGPU: ${pledgeData.gpu}\nMax CPU: ${pledgeData.maxCpu}%\nMax GPU: ${pledgeData.maxGpu}%\nMax Hours/Day: ${pledgeData.maxHours}\nIdle Only: ${pledgeData.idleOnly}\nCustom Hours: ${pledgeData.customHours}\nFrom: ${pledgeData.fromHour}\nTo: ${pledgeData.toHour}\nDays: ${pledgeData.days.join(', ')}`
+            })
+        });
+    }
+
+    onMount(async () => {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        user = currentUser;
+        isCheckingAuth = false;
+    });
 </script>
 
-<main>
-<div class="settings-card">
-  <h1>Notification Settings</h1>
-
-  {#if loading}
-    <div class="loading">
-      <span class="spinner"></span>
-      <span>Loading...</span>
+<div class="page-wrapper">
+    <div class="model-container">
+        <Floating3DModel {...modelConfig} />
     </div>
-  {:else if error}
-    <p class="alert alert-error">{error}</p>
-  {:else if success}
-    <p class="alert alert-success">{success}</p>
-  {/if}
 
-  {#if !loading && !error}
-    <form on:submit|preventDefault={handleSubmit}>
-      {#each Object.entries(notifications) as [type, enabled]}
-        <div class="toggle-group">
-          <span class="toggle-label">Notify me about {type.replace('_', ' ')}</span>
-          <label class="toggle-switch" for={type}>
-            <input
-              type="checkbox"
-              id={type}
-              bind:checked={notifications[type]}
-              on:change={() => handleToggle(type, notifications[type])}
-              aria-label={`Toggle notifications for ${type.replace('_', ' ')}`}
-            />
-            <span class="slider">
-              <span class="toggle-text">{notifications[type] ? 'On' : 'Off'}</span>
-            </span>
-          </label>
+    <div class="about-section">
+        <h2>About Pexos</h2>
+        <p>Wadim Seminsky and Bertin van Vliet, two passionate visionaries, crafted Pexos as a vibrant creative platform where artists can unleash their imaginations and bring drawings to life. This space is a celebration of art, innovation, and community.</p>
+        <p>Right now, we’re rallying support for a heartfelt cause—raising funds to help a dear friend get new teeth, restoring their confidence and smile. Every small gesture counts, and you can make a difference! Join us in this mission by grabbing a virtual coffee for the cause at <a href="https://buymeacoffee.com/wadiem" target="_blank" class="coffee-button">buymeacoffee.com/wadiem</a>. Your support fuels both creativity and kindness!</p>
+    </div>
+
+    <div class="pledge-section">
+        <h2>🖥️ Pledge Your Resources</h2>
+        <label><input type="checkbox" bind:checked={pledge.cpu}/> CPU</label>
+        <label><input type="checkbox" bind:checked={pledge.gpu}/> GPU</label>
+
+        <div>
+            <label>Max CPU usage (%): <input type="number" bind:value={pledge.maxCpu}/></label>
+            <label>Max GPU usage (%): <input type="number" bind:value={pledge.maxGpu}/></label>
+            <label>Daily max runtime (hours): <input type="number" bind:value={pledge.maxHours}/></label>
         </div>
-      {/each}
-      {#if Object.values(notifications).every((enabled) => !enabled)}
-        <p class="warning">Disabling all notifications will stop push notifications.</p>
-      {/if}
-      <p class="role">Role: <span>{role || 'Not set'}</span></p>
-      <button type="submit" disabled={loading}>
-        {loading ? 'Saving...' : 'Save Settings'}
-      </button>
-    </form>
-  {/if}
-</div>
-</main>
 
-<Toast message={toast.message} show={toast.show} type={toast.type} />
+        <label><input type="checkbox" bind:checked={pledge.idleOnly}/> Only when idle</label>
+        <label><input type="checkbox" bind:checked={pledge.customHours}/> Set custom hours</label>
+
+        {#if pledge.customHours}
+            <div>
+                From: <input type="time" bind:value={pledge.fromHour}/>
+                To: <input type="time" bind:value={pledge.toHour}/>
+                <div>
+                    {#each daysOfWeek as day}
+                        <label><input type="checkbox" value={day} on:change={(e) => {
+                            if (e.target.checked) pledge.days = [...pledge.days, day];
+                            else pledge.days = pledge.days.filter(d => d !== day);
+                        }}/> {day}</label>
+                    {/each}
+                </div>
+            </div>
+        {/if}
+
+        <button on:click={submitPledge}>Submit Pledge</button>
+    </div>
+
+    <p class="quote">"They hang me up to dry too many times" - Cold War Kids</p>
+</div>
 
 <style>
-main {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f4f4f9;
-  padding: 1rem;
-}
+    .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 80vh;
+        padding: 20px;
+        background: linear-gradient(180deg, #f9fafb 0%, #e5e7eb 100%);
+    }
 
-.settings-card {
-  max-width: 400px;
-  width: 100%;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-}
+    .page-title {
+        font-size: 2.2em;
+        margin-bottom: 20px;
+        text-align: center;
+        color: #1f2937;
+    }
 
-h1 {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
+    .quote {
+        margin-top: 40px;
+        font-size: 1.2em;
+        font-style: italic;
+        color: #4b5563;
+        text-align: center;
+        opacity: 0.9;
+    }
 
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  color: #666;
-  font-size: 1rem;
-  margin: 1rem 0;
-}
+    .model-container {
+        width: 100%;
+        max-width: 800px;
+        margin-bottom: 40px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease;
+    }
 
-.spinner {
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 2px solid #ccc;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
+    .model-container:hover {
+        transform: translateY(-5px);
+    }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+    .about-section {
+        max-width: 800px;
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 30px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
 
-.alert {
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  text-align: center;
-}
+    .about-section:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
 
-.alert-error {
-  background-color: #fee2e2;
-  color: #dc2626;
-}
+    .about-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #3b82f6, #10b981);
+    }
 
-.alert-success {
-  background-color: #dcfce7;
-  color: #15803d;
-}
+    .about-section h2 {
+        font-size: 2em;
+        margin-bottom: 20px;
+        color: #1f2937;
+        font-weight: 700;
+        position: relative;
+        display: inline-block;
+    }
 
-.warning {
-  color: #d97706;
-  font-size: 0.9rem;
-  margin: 0.5rem 0;
-}
+    .about-section h2::after {
+        content: '';
+        display: block;
+        width: 50%;
+        height: 3px;
+        background: #3b82f6;
+        margin: 10px auto 0;
+        border-radius: 2px;
+    }
 
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+    .about-section p {
+        font-size: 1.15em;
+        line-height: 1.7;
+        color: #4b5563;
+        margin-bottom: 20px;
+    }
 
-.toggle-group {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
+    .coffee-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: background 0.3s ease, transform 0.2s ease;
+    }
 
-.toggle-label {
-  font-size: 1rem;
-  color: #444;
-}
+    .coffee-button:hover {
+        background: linear-gradient(90deg, #d97706, #b45309);
+        transform: scale(1.05);
+        text-decoration: none;
+    }
 
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 28px;
-  cursor: pointer;
-}
+    .pledge-section {
+        max-width: 800px;
+        margin: 30px auto;
+        padding: 25px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+        font-size: 1.1em;
+        color: #1f2937;
+    }
 
-.toggle-switch input {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  margin: 0;
-  cursor: pointer;
-  z-index: 1;
-}
+    .pledge-section label {
+        display: block;
+        margin-bottom: 10px;
+    }
 
-.slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  border-radius: 28px;
-  transition: background-color 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-}
+    .pledge-section input[type="number"],
+    .pledge-section input[type="time"] {
+        margin-left: 10px;
+        width: 80px;
+    }
 
-.slider:before {
-  position: absolute;
-  content: '';
-  height: 22px;
-  width: 22px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  border-radius: 50%;
-  transition: transform 0.3s;
-}
+    .pledge-section button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
 
-input:checked + .slider {
-  background-color: #3b82f6;
-}
-
-input:checked + .slider:before {
-  transform: translateX(32px);
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-}
-
-.toggle-text {
-  font-size: 0.8rem;
-  color: white;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-input:checked + .slider .toggle-text {
-  left: 8px;
-}
-
-input:not(:checked) + .slider .toggle-text {
-  right: 8px;
-}
-
-.role {
-  font-size: 0.95rem;
-  color: #666;
-  margin: 0.5rem 0;
-}
-
-.role span {
-  font-weight: 500;
-  color: #333;
-}
-
-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #3b82f6;
-  color: white;
-  font-size: 1rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
+    .pledge-section button:hover {
+        background: #059669;
+    }
 </style>

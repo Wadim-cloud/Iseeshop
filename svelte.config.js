@@ -7,7 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const config = {
   kit: {
-    adapter: adapter(),
+    adapter: adapter({
+      runtime: 'nodejs20.x' // Explicitly specify Node.js 20 runtime
+    }),
     alias: {
       $components: path.resolve(__dirname, 'src/components'),
       $lib: path.resolve(__dirname, 'src/lib'),

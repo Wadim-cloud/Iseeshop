@@ -1,15 +1,21 @@
-import tailwindcss from "@tailwindcss/vite";
-import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit()],
+  plugins: [sveltekit()],
   resolve: {
-	alias: {
-	  $components: "/src/components",
-	  $lib: "/src/lib", // For reusable utilities or helpers
-	  $stores: "/src/stores", // For Svelte stores
-	  $assets: "/src/assets", // For images, styles, etc.
-	}
-  }
+    alias: {
+      $components: '/src/components',
+      $lib: '/src/lib',
+      $stores: '/src/stores',
+      $assets: '/src/assets',
+    },
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        loadPaths: ['node_modules', 'src']
+      },
+    },
+  },
 });

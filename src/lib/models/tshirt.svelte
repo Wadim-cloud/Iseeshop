@@ -6,7 +6,7 @@
 
   export let drawingData: string | null;
   export let zoomLevel: number = 1;
-  export let selectedColor: string = 'white'; // New prop for selected color
+  export let selectedColor: string = 'white';
 
   let container: HTMLDivElement;
   let scene: THREE.Scene;
@@ -19,7 +19,6 @@
   let textureError = false;
   let loadingError = false;
 
-  // Define rainbow shader for green, black, white
   const rainbowShader = {
     vertexShader: `
       varying vec2 vUv;
@@ -41,7 +40,7 @@
 
       void main() {
         vec4 texColor = texture2D(map, vUv);
-        float hue = vUv.x; // Use UV.x for rainbow gradient
+        float hue = vUv.x;
         vec3 rainbow = hsv2rgb(vec3(hue, 1.0, 1.0));
         gl_FragColor = vec4(texColor.rgb * rainbow * baseColor, texColor.a);
       }
@@ -70,15 +69,14 @@
     controls.minDistance = 3;
     controls.maxDistance = 15;
 
-    // Five directional lights with warm color (more red, less blue)
-    const warmLightColor = 0xff9999; // Reddish warm light
+    const warmLightColor = 0xff9999;
     const lightIntensity = 0.4;
     [
-      new THREE.Vector3(1, 0, 1),   // Front
-      new THREE.Vector3(-1, 0, 1),  // Back
-      new THREE.Vector3(1, 0, -1),  // Left
-      new THREE.Vector3(-1, 0, -1), // Right
-      new THREE.Vector3(0, 1, 0)    // Top
+      new THREE.Vector3(1, 0, 1),
+      new THREE.Vector3(-1, 0, 1),
+      new THREE.Vector3(1, 0, -1),
+      new THREE.Vector3(-1, 0, -1),
+      new THREE.Vector3(0, 1, 0)
     ].forEach((pos) => {
       const light = new THREE.DirectionalLight(warmLightColor, lightIntensity);
       light.position.copy(pos).normalize();
@@ -87,12 +85,10 @@
   }
 
   function loadModel() {
-    console.log('Loading T-shirt model with drawingData:', drawingData);
     const loader = new STLLoader();
     loader.load(
       '/models/tshirt.stl',
       (geometry) => {
-        console.log('STL model loaded successfully');
         geometry.computeBoundingBox();
         const boundingBox = geometry.boundingBox;
         const size = new THREE.Vector3();
@@ -111,19 +107,15 @@
           );
         }
 
-        console.log('Generated UVs sample:', uv.slice(0, 10));
         geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
 
         let material: THREE.Material;
         if (drawingData) {
           textureLoading = true;
           const textureLoader = new THREE.TextureLoader();
-          console.log('Attempting to load texture:', drawingData);
           textureLoader.load(
             drawingData,
             (texture) => {
-              console.log('Texture loaded successfully');
-              // Removed texture.flipY = false to fix upside-down texture
               texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
               material = createMaterial(texture);
               if (model) {
@@ -132,9 +124,7 @@
               }
               textureLoading = false;
             },
-            (progress) => {
-              console.log('Texture loading progress:', progress.loaded / progress.total);
-            },
+            undefined,
             (err) => {
               console.error('Texture load error:', err);
               textureError = true;
@@ -147,12 +137,10 @@
             }
           );
         } else {
-          console.warn('No drawingData provided, using default material');
           material = createMaterial(null);
         }
 
         model = new THREE.Mesh(geometry, material);
-        geometry.computeBoundingBox();
         const center = new THREE.Vector3();
         boundingBox.getCenter(center);
         model.position.sub(center);
@@ -171,9 +159,7 @@
 
         animate();
       },
-      (progress) => {
-        console.log('Model loading progress:', progress.loaded / progress.total);
-      },
+      undefined,
       (err) => {
         console.error('STL load error:', err);
         loadingError = true;
@@ -242,20 +228,15 @@
     textureLoading = true;
     if (drawingData) {
       const textureLoader = new THREE.TextureLoader();
-      console.log('Reactive texture update for drawingData:', drawingData);
       textureLoader.load(
         drawingData,
         (texture) => {
-          console.log('Texture updated successfully');
-          // Removed texture.flipY = false to fix upside-down texture
           texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
           model.material = createMaterial(texture);
           model.material.needsUpdate = true;
           textureLoading = false;
         },
-        (progress) => {
-          console.log('Texture update progress:', progress.loaded / progress.total);
-        },
+        undefined,
         (err) => {
           console.error('Texture update error:', err);
           textureError = true;
@@ -272,7 +253,6 @@
   }
 
   onMount(() => {
-    console.log('TshirtModel mounted with drawingData:', drawingData);
     setupScene();
     loadModel();
     window.addEventListener('resize', resizeRenderer);
@@ -324,7 +304,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-ieval(0.9rem);
+    font-size: 0.9rem;
     text-align: center;
   }
 
