@@ -50,7 +50,7 @@
 		"@supabase/supabase-js": "^2.49.4",
 		"@sveltejs/adapter-vercel": "^5.7.2",
 		"@tailwindcss/vite": "^4.1.4",
-		"@threlte/core": "^8.0.2",
+		"@threlte/core": "^8.3.1",
 		"@threlte/extras": "^9.1.4",
 		"@zerodevx/svelte-toast": "^0.9.6",
 		"chart.js": "^4.4.9",
