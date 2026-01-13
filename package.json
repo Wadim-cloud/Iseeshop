@@ -64,7 +64,7 @@
 		"postcss-load-config": "^6.0.1",
 		"sanitize-html": "^2.16.0",
 		"tailwind-merge": "^3.2.0",
-		"three": "^0.174.0",
+		"three": "^0.182.0",
 		"uuid": "^11.1.0"
 	}
 }
