@@ -48,7 +48,7 @@
 	"dependencies": {
 		"@supabase/ssr": "^0.6.1",
 		"@supabase/supabase-js": "^2.49.4",
-		"@sveltejs/adapter-vercel": "^5.7.2",
+		"@sveltejs/adapter-vercel": "^6.1.2",
 		"@tailwindcss/vite": "^4.1.4",
 		"@threlte/core": "^8.0.2",
 		"@threlte/extras": "^9.1.4",
