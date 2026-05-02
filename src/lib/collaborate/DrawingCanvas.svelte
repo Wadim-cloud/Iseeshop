@@ -3,11 +3,12 @@
   import { createEventDispatcher } from 'svelte';
   import { browser } from '$app/environment';
   import { supabase } from '$lib/supabase';
-  import type { Stroke, UserData, Session } from './types.js';
+  import type { Stroke, UserData, Session, BrushType } from './types.js';
 
   export let ctx: CanvasRenderingContext2D | null = null;
   export let brushColor: string = '#000000';
   export let brushSize: number = 5;
+  export let brushType: BrushType = 'normal';
   export let session: Session | null = null;
   export let userData: UserData | null = null;
 
@@ -18,6 +19,16 @@
   let isDrawing = false;
   let lastX = 0;
   let lastY = 0;
+
+  // Motion capture state
+  let sessionStartTime = 0;
+  let currentStrokeId = '';
+  let lastTimestamp = 0;
+  let lastVelocity = 0;
+
+  function generateStrokeId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
 
   function setupCanvas() {
     if (!canvas || !browser) return;
@@ -34,6 +45,8 @@
       ctx.strokeStyle = brushColor;
       ctx.lineWidth = brushSize;
     }
+
+    sessionStartTime = Date.now();
   }
 
   $: if (ctx) {
@@ -65,13 +78,13 @@
 
       const { strokes } = await res.json();
       if (ctx && strokes.length) {
-        strokes.forEach(stroke => {
-          ctx.beginPath();
-          ctx.moveTo(stroke.x0, stroke.y0);
-          ctx.lineTo(stroke.x1, stroke.y1);
-          ctx.strokeStyle = stroke.color;
-          ctx.lineWidth = stroke.width;
-          ctx.stroke();
+        strokes.forEach((stroke: Stroke) => {
+          ctx!.beginPath();
+          ctx!.moveTo(stroke.x0, stroke.y0);
+          ctx!.lineTo(stroke.x1, stroke.y1);
+          ctx!.strokeStyle = stroke.color;
+          ctx!.lineWidth = stroke.width;
+          ctx!.stroke();
         });
       }
     } catch (error) {
@@ -79,33 +92,31 @@
     }
   }
 
-  function getPosition(e: MouseEvent | TouchEvent) {
+  function getPosition(e: PointerEvent) {
     if (!canvas || !browser) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    if ('touches' in e) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY,
-      };
-    }
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY,
     };
   }
 
-  async function startDrawing(e: MouseEvent | TouchEvent) {
+  function startDrawing(e: PointerEvent) {
     if (!ctx || !session?.session_id || !userData || !browser) return;
     isDrawing = true;
+    currentStrokeId = generateStrokeId();
     const pos = getPosition(e);
     lastX = pos.x;
     lastY = pos.y;
+    lastTimestamp = Date.now();
+    lastVelocity = 0;
+    canvas.setPointerCapture(e.pointerId);
   }
 
-  async function draw(e: MouseEvent | TouchEvent) {
+  function draw(e: PointerEvent) {
     if (!isDrawing || !ctx || !session?.session_id || !userData || !browser) return;
 
     const pos = getPosition(e);
@@ -117,40 +128,44 @@
     ctx.lineTo(x, y);
     ctx.stroke();
 
-    const stroke: Stroke = { x0: lastX, y0: lastY, x1: x, y1: y, color: brushColor, width: brushSize };
+    // Compute motion metrics
+    const now = Date.now();
+    const dt = now - lastTimestamp;
+    const dx = x - lastX;
+    const dy = y - lastY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const velocity = dt > 0 ? distance / dt : 0;
+    const acceleration = dt > 0 ? (velocity - lastVelocity) / dt : 0;
+    const pressure = e.pressure !== undefined ? e.pressure : 0.5;
+
+    const stroke: Stroke = {
+      x0: lastX,
+      y0: lastY,
+      x1: x,
+      y1: y,
+      color: brushColor,
+      width: brushSize,
+      timestamp: now - sessionStartTime,
+      stroke_id: currentStrokeId,
+      velocity,
+      acceleration,
+      pressure,
+      brush_type: brushType,
+    };
     dispatch('stroke', stroke);
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) throw new Error('No access token');
-
-      await fetch(`${SUPABASE_FUNCTIONS_URL}/save-stroke`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: session.session_id,
-          x0: stroke.x0,
-          y0: stroke.y0,
-          x1: stroke.x1,
-          y1: stroke.y1,
-          color: stroke.color,
-          width: stroke.width
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to save stroke:', error);
-    }
 
     lastX = x;
     lastY = y;
+    lastTimestamp = now;
+    lastVelocity = velocity;
   }
 
   function stopDrawing() {
-    isDrawing = false;
+    if (isDrawing) {
+      isDrawing = false;
+      currentStrokeId = '';
+      lastVelocity = 0;
+    }
   }
 
   export function clearCanvas() {
@@ -176,8 +191,8 @@
     if (!ctx || !canvas || !imageData) return;
     const img = new Image();
     img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx!.clearRect(0, 0, canvas.width, canvas.height);
+      ctx!.drawImage(img, 0, 0, canvas.width, canvas.height);
     };
     img.src = imageData;
   }
@@ -212,26 +227,22 @@
       setupCanvas();
       if (session?.session_id && userData) loadStrokes();
       window.addEventListener('resize', handleResize);
-      canvas?.addEventListener('mousedown', startDrawing);
-      canvas?.addEventListener('mousemove', draw);
-      canvas?.addEventListener('mouseup', stopDrawing);
-      canvas?.addEventListener('mouseout', stopDrawing);
-      canvas?.addEventListener('touchstart', startDrawing);
-      canvas?.addEventListener('touchmove', draw);
-      canvas?.addEventListener('touchend', stopDrawing);
+      canvas?.addEventListener('pointerdown', startDrawing);
+      canvas?.addEventListener('pointermove', draw);
+      canvas?.addEventListener('pointerup', stopDrawing);
+      canvas?.addEventListener('pointerout', stopDrawing);
+      canvas?.addEventListener('pointercancel', stopDrawing);
     }
   });
 
   onDestroy(() => {
     if (browser) {
       window.removeEventListener('resize', handleResize);
-      canvas?.removeEventListener('mousedown', startDrawing);
-      canvas?.removeEventListener('mousemove', draw);
-      canvas?.removeEventListener('mouseup', stopDrawing);
-      canvas?.removeEventListener('mouseout', stopDrawing);
-      canvas?.removeEventListener('touchstart', startDrawing);
-      canvas?.removeEventListener('touchmove', draw);
-      canvas?.removeEventListener('touchend', stopDrawing);
+      canvas?.removeEventListener('pointerdown', startDrawing);
+      canvas?.removeEventListener('pointermove', draw);
+      canvas?.removeEventListener('pointerup', stopDrawing);
+      canvas?.removeEventListener('pointerout', stopDrawing);
+      canvas?.removeEventListener('pointercancel', stopDrawing);
     }
   });
 </script>

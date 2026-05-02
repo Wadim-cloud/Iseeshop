@@ -1,11 +1,12 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import type { Session, Canvas, Toast } from './types.js';
+  import type { Session, Canvas, Toast, BrushType } from './types.js';
 
   export let canvasId: string = '';
   export let title: string = 'Collaborative Session';
   export let brushColor: string = '#000000';
   export let brushSize: number = 5;
+  export let brushType: BrushType = 'normal';
   export let userCanvases: Canvas[] = [];
   export let sessions: Session[] = [];
   export let isLoading: boolean = false;
@@ -19,7 +20,7 @@
     clearCanvas: void;
     loadSession: string;
     loadCanvas: string;
-    updateBrush: { color: string; size: number };
+    updateBrush: { color: string; size: number; brushType: BrushType };
     toast: Toast;
   }>();
 
@@ -76,7 +77,7 @@
     }
   }
 
-  $: dispatch('updateBrush', { color: brushColor, size: brushSize });
+  $: dispatch('updateBrush', { color: brushColor, size: brushSize, brushType });
 </script>
 
 <div class="controls-panel">
@@ -140,6 +141,14 @@
       disabled={isLoading}
     />
     <span>{brushSize}px</span>
+  </div>
+  <div class="control-group">
+    <label for="brush-type">Brush Type:</label>
+    <select id="brush-type" bind:value={brushType} disabled={isLoading}>
+      <option value="normal">Normal</option>
+      <option value="twirl">Twirl</option>
+      <option value="horizontal">Horizontal</option>
+    </select>
   </div>
   <div class="control-group">
     <button on:click={() => dispatch('saveCanvas')} disabled={isLoading}>Save Canvas</button>

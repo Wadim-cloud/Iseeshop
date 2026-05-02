@@ -10,7 +10,7 @@
   import DebugInfo from '$lib/collaborate/DebugInfo.svelte';
   import OnlineUsers from '$lib/collaborate/OnlineUsers.svelte';
   import { supabase } from '$lib/supabase';
-  import type { Session, Stroke, UserData, Canvas, Toast } from '$lib/collaborate/types.js';
+  import type { Session, Stroke, UserData, Canvas, Toast, BrushType } from '$lib/collaborate/types.js';
 
   let currentTab: 'canvas' | 'settings' | 'gallery' = 'canvas';
 
@@ -20,6 +20,7 @@
   let title: string = 'Collaborative Session';
   let brushColor: string = '#000000';
   let brushSize: number = 5;
+  let brushType: BrushType = 'normal';
   let sessions: Session[] = [];
   let userCanvases: Canvas[] = [];
   let onlineUsers: { user_id: string; email: string }[] = [];
@@ -129,9 +130,10 @@
     }
   }
 
-  function handleUpdateBrush(event: CustomEvent<{ color: string; size: number }>) {
+  function handleUpdateBrush(event: CustomEvent<{ color: string; size: number; brushType: BrushType }>) {
     brushColor = event.detail.color;
     brushSize = event.detail.size;
+    brushType = event.detail.brushType;
   }
 
   async function fetchSessionsFromEdgeFunction(user_id: string, token: string) {
@@ -198,6 +200,7 @@
       bind:title
       bind:brushColor
       bind:brushSize
+      bind:brushType
       {userCanvases}
       {sessions}
       {isLoading}
@@ -249,6 +252,7 @@
         bind:ctx
         {brushColor}
         {brushSize}
+        {brushType}
         {session}
         {userData}
         bind:this={canvasComponent}

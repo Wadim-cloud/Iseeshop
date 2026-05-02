@@ -182,7 +182,13 @@ export async function sendStroke(stroke: Stroke) {
         x1: stroke.x1,
         y1: stroke.y1,
         color: stroke.color,
-        width: stroke.width
+        width: stroke.width,
+        timestamp: stroke.timestamp,
+        stroke_id: stroke.stroke_id,
+        velocity: stroke.velocity,
+        acceleration: stroke.acceleration,
+        pressure: stroke.pressure,
+        brush_type: stroke.brush_type,
       })
     });
 

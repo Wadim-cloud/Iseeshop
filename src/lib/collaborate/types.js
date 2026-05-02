@@ -20,6 +20,8 @@ export type Canvas = {
   updated_at: string | null;
 };
 
+export type BrushType = 'normal' | 'twirl' | 'horizontal';
+
 export type Stroke = {
   x0: number;
   y0: number;
@@ -27,6 +29,12 @@ export type Stroke = {
   y1: number;
   color: string;
   width: number;
+  timestamp: number;
+  stroke_id: string;
+  velocity: number;
+  acceleration: number;
+  pressure: number;
+  brush_type: BrushType;
 };
 
 export type Toast = {
