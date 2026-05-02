@@ -154,45 +154,10 @@
     };
     dispatch('stroke', stroke);
 
-    saveStrokeToSupabase(stroke);
-
     lastX = x;
     lastY = y;
     lastTimestamp = now;
     lastVelocity = velocity;
-  }
-
-  async function saveStrokeToSupabase(stroke: Stroke) {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) throw new Error('No access token');
-
-      await fetch(`${SUPABASE_FUNCTIONS_URL}/save-stroke`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: session!.session_id,
-          x0: stroke.x0,
-          y0: stroke.y0,
-          x1: stroke.x1,
-          y1: stroke.y1,
-          color: stroke.color,
-          width: stroke.width,
-          timestamp: stroke.timestamp,
-          stroke_id: stroke.stroke_id,
-          velocity: stroke.velocity,
-          acceleration: stroke.acceleration,
-          pressure: stroke.pressure,
-          brush_type: stroke.brush_type,
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to save stroke:', error);
-    }
   }
 
   function stopDrawing() {
