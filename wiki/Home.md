@@ -26,6 +26,7 @@ Welcome to the **Pexos** wiki — the documentation hub for the collaborative cr
 - [Database & Supabase](Database.md)
 - [Deployment](Deployment.md)
 - [Contributing](Contributing.md)
+- [Motion Capture](Motion-Capture.md)
 - [Future Vision](Future-Vision.md)
 
 ---
