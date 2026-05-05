@@ -11,13 +11,12 @@
   let lastY = 0;
 
   // Drawing settings
-  let brushColor = '#000000';
+  let brushColor = 'black';
   let brushSize = 5;
   let brushType = 'normal';
   let backgroundPattern = 'blank';
   let lineOpacity = 1;
-  let pressureResponsive = true;
-  const colors = ['#000000', '#e53e3e', '#3182ce', '#38a169', '#d69e2e', '#805ad5'];
+  const colors = ['black', 'red', 'blue', 'green'];
   const brushTypes = ['normal', 'twirl', 'horizontal'];
 
   // Motion capture state
@@ -207,17 +206,14 @@
     }
     currentSecondVelocities = [...currentSecondVelocities, velocity];
 
-    // Draw with pressure response
-    const effectiveWidth = pressureResponsive ? brushSize * (0.5 + pressure) : brushSize;
-    const effectiveAlpha = pressureResponsive ? Math.max(0.2, pressure) * lineOpacity : lineOpacity;
-
+    // Draw matching original /create brush dynamics (solid strokes)
     if (brushType === 'normal') {
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(x, y);
       ctx.strokeStyle = brushColor;
-      ctx.lineWidth = effectiveWidth;
-      ctx.globalAlpha = effectiveAlpha;
+      ctx.lineWidth = brushSize;
+      ctx.globalAlpha = lineOpacity;
       ctx.stroke();
       ctx.globalAlpha = 1;
     } else if (brushType === 'twirl') {
@@ -225,8 +221,8 @@
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(x, y);
       ctx.strokeStyle = brushColor;
-      ctx.lineWidth = effectiveWidth / 4;
-      ctx.globalAlpha = effectiveAlpha;
+      ctx.lineWidth = brushSize / 4;
+      ctx.globalAlpha = lineOpacity;
       ctx.stroke();
       ctx.globalAlpha = 1;
       drawTwirl();
@@ -235,8 +231,8 @@
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(x, y);
       ctx.strokeStyle = brushColor;
-      ctx.lineWidth = effectiveWidth / 4;
-      ctx.globalAlpha = effectiveAlpha;
+      ctx.lineWidth = brushSize / 4;
+      ctx.globalAlpha = lineOpacity;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
@@ -509,7 +505,6 @@
           aria-label="Color {color}"
         ></button>
       {/each}
-      <input type="color" bind:value={brushColor} class="custom-color" title="Custom color" />
     </div>
     <label class="tool-label">
       Size
@@ -523,10 +518,6 @@
           <option value={type}>{type}</option>
         {/each}
       </select>
-    </label>
-    <label class="tool-label">
-      <input type="checkbox" bind:checked={pressureResponsive} />
-      Pressure FX
     </label>
     <button class="tool-btn" on:click={() => showSettings = !showSettings}>Settings</button>
     <button class="tool-btn" on:click={saveDrawing} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save'}</button>
@@ -565,11 +556,6 @@
       class="heal-canvas"
     ></canvas>
 
-    <!-- Pressure bar overlay -->
-    <div class="pressure-overlay">
-      <div class="pressure-fill" style="height: {currentPressure * 100}%"></div>
-      <span class="pressure-text">{currentPressure.toFixed(2)}</span>
-    </div>
   </div>
 
   <!-- Behavioral Metrics Panel -->
@@ -848,14 +834,6 @@
   .swatch:hover {
     transform: scale(1.15);
   }
-  .custom-color {
-    width: 24px;
-    height: 24px;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    border-radius: 4px;
-  }
   .tool-label {
     display: flex;
     align-items: center;
@@ -922,33 +900,7 @@
     cursor: crosshair;
     touch-action: none;
   }
-  .pressure-overlay {
-    position: absolute;
-    right: -30px;
-    top: 0;
-    width: 16px;
-    height: 100%;
-    background: #e2e8f0;
-    border-radius: 8px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column-reverse;
-  }
-  .pressure-fill {
-    width: 100%;
-    background: linear-gradient(to top, #38a169, #d69e2e, #e53e3e);
-    border-radius: 8px;
-    transition: height 0.1s ease;
-  }
-  .pressure-text {
-    position: absolute;
-    bottom: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 10px;
-    color: #718096;
-    white-space: nowrap;
-  }
+
 
   /* Metrics panel */
   .metrics-panel {
@@ -1271,9 +1223,6 @@
     .heal-canvas {
       width: 100%;
       height: auto;
-    }
-    .pressure-overlay {
-      display: none;
     }
     .metrics-grid {
       grid-template-columns: repeat(3, 1fr);
