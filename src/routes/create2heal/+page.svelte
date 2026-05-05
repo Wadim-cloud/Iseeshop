@@ -309,8 +309,11 @@
     sessionDuration = 0;
   }
 
+  let isSaving = false;
+
   async function saveDrawing() {
-    if (!canvas) return;
+    if (!canvas || isSaving) return;
+    isSaving = true;
     const imageData = canvas.toDataURL('image/png');
     try {
       const userId = session?.user?.id || null;
@@ -328,7 +331,9 @@
       }
 
       const newDrawingId = `${username}-${count}-${sanitizedTitle}`;
-      const { error } = await supabase.from('drawings').insert({
+
+      // 1. Save drawing to gallery
+      const { error: drawErr } = await supabase.from('drawings').insert({
         drawing_id: newDrawingId,
         image_data: imageData,
         title: drawingTitle.trim() || 'Healing Session',
@@ -338,12 +343,66 @@
         comments: null,
         blocked: false,
       });
+      if (drawErr) throw drawErr;
 
-      if (error) throw error;
+      // 2. Save heal session with metrics
+      if (userId && strokes.length > 0) {
+        const { data: healSession, error: sessErr } = await supabase
+          .from('heal_sessions')
+          .insert({
+            user_id: userId,
+            drawing_id: newDrawingId,
+            title: drawingTitle.trim() || 'Healing Session',
+            total_duration: sessionDuration,
+            stroke_count: totalStrokes,
+            point_count: totalPoints,
+            avg_velocity: avgVelocity,
+            max_velocity: maxVelocity,
+            avg_pressure: avgPressure,
+            pressure_variance: pressureVariance,
+            hesitation_count: hesitationCount,
+            correction_count: correctionCount,
+            hesitation_rate: hesitationRate,
+            correction_rate: correctionRate,
+            flow_score: flowScore,
+            steadiness_score: steadinessScore,
+            brush_type_distribution: brushUsage,
+            velocity_profile: velocitySpark,
+          })
+          .select('id')
+          .single();
+
+        if (sessErr) {
+          console.error('Failed to save heal session:', sessErr);
+        } else if (healSession) {
+          // 3. Save strokes in batches of 500
+          const batchSize = 500;
+          for (let i = 0; i < strokes.length; i += batchSize) {
+            const batch = strokes.slice(i, i + batchSize).map(s => ({
+              session_id: healSession.id,
+              x0: s.x0, y0: s.y0, x1: s.x1, y1: s.y1,
+              color: s.color, width: s.width,
+              timestamp: s.timestamp,
+              stroke_id: s.stroke_id,
+              velocity: s.velocity,
+              acceleration: s.acceleration,
+              pressure: s.pressure,
+              brush_type: s.brush_type,
+              is_hesitation: s.is_hesitation,
+              is_correction: s.is_correction,
+            }));
+            const { error: strokeErr } = await supabase.from('heal_strokes').insert(batch);
+            if (strokeErr) console.error('Failed to save heal strokes batch:', strokeErr);
+          }
+          addToast(`Session saved with ${strokes.length} strokes + behavioral data`, 'success');
+        }
+      }
+
       addToast(`Drawing saved: ${newDrawingId}`, 'success');
     } catch (error) {
       addToast('Failed to save: ' + error.message, 'error');
     }
+    isSaving = false;
   }
 
   // Computed metrics
@@ -381,6 +440,27 @@
     return `M ${points.join(' L ')}`;
   })();
 
+  // Session history
+  let pastSessions = [];
+  let showHistory = false;
+
+  async function loadPastSessions() {
+    if (!session?.user?.id) return;
+    const { data, error } = await supabase
+      .from('heal_sessions')
+      .select('id, title, drawing_id, total_duration, stroke_count, point_count, avg_velocity, avg_pressure, hesitation_count, correction_count, flow_score, steadiness_score, created_at')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (!error && data) pastSessions = data;
+  }
+
+  function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
   onMount(async () => {
     if (browser) {
       setupCanvas();
@@ -390,6 +470,7 @@
 
       const { data: { session: s } } = await supabase.auth.getSession();
       session = s;
+      if (s?.user) loadPastSessions();
     }
   });
 
@@ -448,7 +529,7 @@
       Pressure FX
     </label>
     <button class="tool-btn" on:click={() => showSettings = !showSettings}>Settings</button>
-    <button class="tool-btn" on:click={saveDrawing}>Save</button>
+    <button class="tool-btn" on:click={saveDrawing} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save'}</button>
     <button class="tool-btn danger" on:click={clearCanvas}>Clear</button>
   </div>
 
@@ -647,6 +728,55 @@
       </div>
     {/if}
   </div>
+
+  <!-- Session History -->
+  {#if session?.user}
+    <div class="history-panel">
+      <button class="history-toggle" on:click={() => { showHistory = !showHistory; if (showHistory) loadPastSessions(); }}>
+        {showHistory ? '▼' : '▶'} Session History ({pastSessions.length})
+      </button>
+      {#if showHistory}
+        {#if pastSessions.length === 0}
+          <p class="history-empty">No sessions saved yet. Draw and save to start tracking your progress.</p>
+        {:else}
+          <div class="history-table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Title</th>
+                  <th>Duration</th>
+                  <th>Strokes</th>
+                  <th>Flow</th>
+                  <th>Steady</th>
+                  <th>Hesit.</th>
+                  <th>Correct.</th>
+                  <th>Avg Vel</th>
+                  <th>Avg Press</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each pastSessions as ps}
+                  <tr>
+                    <td>{formatDate(ps.created_at)}</td>
+                    <td class="title-cell">{ps.title}</td>
+                    <td>{formatTime(Math.round(ps.total_duration))}</td>
+                    <td>{ps.stroke_count}</td>
+                    <td class="score" style="color: {ps.flow_score > 70 ? '#38a169' : ps.flow_score > 40 ? '#d69e2e' : '#e53e3e'}">{Math.round(ps.flow_score)}</td>
+                    <td class="score" style="color: {ps.steadiness_score > 70 ? '#38a169' : ps.steadiness_score > 40 ? '#d69e2e' : '#e53e3e'}">{Math.round(ps.steadiness_score)}</td>
+                    <td>{ps.hesitation_count}</td>
+                    <td>{ps.correction_count}</td>
+                    <td>{ps.avg_velocity?.toFixed(2)}</td>
+                    <td>{ps.avg_pressure?.toFixed(2)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {/if}
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -1068,6 +1198,73 @@
     font-size: 14px;
     color: inherit;
     opacity: 0.6;
+  }
+
+  /* History panel */
+  .history-panel {
+    width: 100%;
+    max-width: 820px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 16px 24px;
+    margin-bottom: 40px;
+  }
+  .history-toggle {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: inherit;
+  }
+  .history-toggle:hover {
+    color: #38a169;
+  }
+  .history-empty {
+    color: #a0aec0;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 16px 0;
+  }
+  .history-table-wrap {
+    overflow-x: auto;
+    margin-top: 12px;
+  }
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  .history-table th {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 2px solid #edf2f7;
+    color: #718096;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .history-table td {
+    padding: 8px;
+    border-bottom: 1px solid #f7fafc;
+    color: #4a5568;
+    white-space: nowrap;
+  }
+  .history-table tr:hover td {
+    background: #f7fafc;
+  }
+  .title-cell {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .score {
+    font-weight: 700;
   }
 
   @media (max-width: 840px) {
