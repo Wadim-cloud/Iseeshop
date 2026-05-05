@@ -150,6 +150,7 @@
     {/each}
   </div>
   <div class="label-box" on:click={() => navigateTo('/create')}>Create</div>
+  <div class="label-box" on:click={() => navigateTo('/create2heal')}>Heal</div>
 
   <!-- Row 2 -->
   <div class="navbar" on:mousemove={(e) => handleMouseMove(e, blocks2, (b) => (blocks2 = b))} on:mouseleave={() => handleMouseLeave((b) => (blocks2 = b), blocks2)}>

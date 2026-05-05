@@ -18,6 +18,15 @@
   let animationId: number | null = null;
   let playbackStartTime = 0;
   let pausedAtTime = 0;
+  let prevPlaybackSpeed = 1.0;
+
+  // Recalculate playbackStartTime when speed changes mid-playback
+  $: if (playbackSpeed !== prevPlaybackSpeed && isPlaying && !isPaused && strokes.length > 0) {
+    const baseTimestamp = strokes[0]?.timestamp || 0;
+    const contentElapsed = (performance.now() - playbackStartTime) * prevPlaybackSpeed;
+    playbackStartTime = performance.now() - contentElapsed / playbackSpeed;
+    prevPlaybackSpeed = playbackSpeed;
+  }
 
   // Stats
   let hesitationCount = 0;
@@ -200,6 +209,8 @@
     for (let i = 0; i < strokes.length; i++) {
       if (strokes[i].timestamp <= timestamp) {
         drawStroke(strokes[i]);
+        drawHesitationMarker(strokes[i]);
+        drawCorrectionMarker(strokes[i]);
         currentIndex = i + 1;
         currentTime = strokes[i].timestamp;
       } else {
