@@ -222,6 +222,8 @@
       const baseTimestamp = strokes[0]?.timestamp || 0;
       playbackStartTime = performance.now() - (timestamp - baseTimestamp) / playbackSpeed;
       animationId = requestAnimationFrame(replayLoop);
+    } else if (isPaused) {
+      pausedAtTime = currentTime;
     }
   }
 

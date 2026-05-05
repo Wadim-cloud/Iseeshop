@@ -191,9 +191,9 @@
     if (is_hesitation) hesitationCount++;
     if (is_correction) correctionCount++;
     totalPoints++;
-    velocities.push(velocity);
-    pressures.push(pressure);
-    accelerations.push(acceleration);
+    velocities = [...velocities, velocity];
+    pressures = [...pressures, pressure];
+    accelerations = [...accelerations, acceleration];
 
     // Velocity sparkline tracking
     const currentSecond = Math.floor((now - sessionStartTime) / 1000);
@@ -205,7 +205,7 @@
       currentSecondVelocities = [];
       lastSparkSecond = currentSecond;
     }
-    currentSecondVelocities.push(velocity);
+    currentSecondVelocities = [...currentSecondVelocities, velocity];
 
     // Draw with pressure response
     const effectiveWidth = pressureResponsive ? brushSize * (0.5 + pressure) : brushSize;
@@ -241,7 +241,7 @@
       ctx.globalAlpha = 1;
     }
 
-    strokes.push({
+    strokes = [...strokes, {
       x0: lastX, y0: lastY, x1: x, y1: y,
       color: brushColor, width: brushSize,
       timestamp: now - sessionStartTime,
@@ -249,7 +249,7 @@
       velocity, acceleration, pressure,
       brush_type: brushType,
       is_hesitation, is_correction,
-    });
+    }];
 
     lastX = x;
     lastY = y;
