@@ -35,6 +35,48 @@ export type Stroke = {
   acceleration: number;
   pressure: number;
   brush_type: BrushType;
+  is_hesitation: boolean;
+  is_correction: boolean;
+  user_id?: string;
+};
+
+export type SessionMetrics = {
+  session_id: string;
+  total_duration: number;
+  stroke_count: number;
+  point_count: number;
+  avg_velocity: number;
+  max_velocity: number;
+  avg_pressure: number;
+  pressure_variance: number;
+  hesitation_count: number;
+  correction_count: number;
+  hesitation_rate: number;
+  correction_rate: number;
+  avg_stroke_duration: number;
+  brush_type_distribution: Record<string, number>;
+  velocity_profile: number[];
+};
+
+export type MotionBaseline = {
+  user_id: string;
+  session_count: number;
+  avg_velocity: number;
+  avg_acceleration: number;
+  avg_pressure: number;
+  avg_hesitation_rate: number;
+  avg_correction_rate: number;
+  avg_stroke_duration: number;
+  brush_type_distribution: Record<string, number>;
+  computed_at: string;
+};
+
+export type DriftReport = {
+  metric: string;
+  current: number;
+  baseline: number;
+  deviation: number;
+  severity: 'low' | 'medium' | 'high';
 };
 
 export type Toast = {

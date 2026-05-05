@@ -189,6 +189,8 @@ export async function sendStroke(stroke: Stroke) {
         acceleration: stroke.acceleration,
         pressure: stroke.pressure,
         brush_type: stroke.brush_type,
+        is_hesitation: stroke.is_hesitation,
+        is_correction: stroke.is_correction,
       })
     });
 
