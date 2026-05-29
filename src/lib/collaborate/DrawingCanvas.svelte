@@ -25,6 +25,10 @@
   let currentStrokeId = '';
   let lastTimestamp = 0;
   let lastVelocity = 0;
+  let lastDx = 0;
+  let lastDy = 0;
+  export let currentPressure: number = 0.5;
+  export let pressureResponsive: boolean = false;
 
   function generateStrokeId(): string {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -113,6 +117,8 @@
     lastY = pos.y;
     lastTimestamp = Date.now();
     lastVelocity = 0;
+    lastDx = 0;
+    lastDy = 0;
     canvas.setPointerCapture(e.pointerId);
   }
 
@@ -123,11 +129,6 @@
     const x = pos.x;
     const y = pos.y;
 
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-
     // Compute motion metrics
     const now = Date.now();
     const dt = now - lastTimestamp;
@@ -137,6 +138,31 @@
     const velocity = dt > 0 ? distance / dt : 0;
     const acceleration = dt > 0 ? (velocity - lastVelocity) / dt : 0;
     const pressure = e.pressure !== undefined ? e.pressure : 0.5;
+    currentPressure = pressure;
+
+    // Hesitation: pause > 200ms between points
+    const is_hesitation = dt > 200;
+
+    // Correction: direction reversal (dot product of consecutive vectors < 0)
+    const hasPrevDirection = lastDx !== 0 || lastDy !== 0;
+    const dotProduct = hasPrevDirection ? (dx * lastDx + dy * lastDy) : 1;
+    const is_correction = hasPrevDirection && dotProduct < 0;
+
+    // Pressure-responsive rendering
+    if (pressureResponsive) {
+      ctx.globalAlpha = Math.max(0.2, pressure);
+      ctx.lineWidth = brushSize * (0.5 + pressure);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    if (pressureResponsive) {
+      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = brushSize;
+    }
 
     const stroke: Stroke = {
       x0: lastX,
@@ -151,6 +177,8 @@
       acceleration,
       pressure,
       brush_type: brushType,
+      is_hesitation,
+      is_correction,
     };
     dispatch('stroke', stroke);
 
@@ -158,6 +186,8 @@
     lastY = y;
     lastTimestamp = now;
     lastVelocity = velocity;
+    lastDx = dx;
+    lastDy = dy;
   }
 
   function stopDrawing() {

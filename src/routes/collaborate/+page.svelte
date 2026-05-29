@@ -21,6 +21,8 @@
   let brushColor: string = '#000000';
   let brushSize: number = 5;
   let brushType: BrushType = 'normal';
+  let currentPressure: number = 0.5;
+  let pressureResponsive: boolean = false;
   let sessions: Session[] = [];
   let userCanvases: Canvas[] = [];
   let onlineUsers: { user_id: string; email: string }[] = [];
@@ -190,6 +192,10 @@
     <button on:click={() => currentTab = 'canvas'} class:active={currentTab === 'canvas'}>🎨 Canvas</button>
     <button on:click={() => currentTab = 'settings'} class:active={currentTab === 'settings'}>⚙️ Settings</button>
     <button on:click={() => currentTab = 'gallery'} class:active={currentTab === 'gallery'}>🖼 Gallery</button>
+    {#if session}
+      <a href="/collaborate/replay?session={session.session_id}" class="tab-link">▶ Replay</a>
+    {/if}
+    <a href="/collaborate/insights" class="tab-link">📊 Insights</a>
   </div>
 
   <ToastContainer {toasts} />
@@ -201,6 +207,8 @@
       bind:brushColor
       bind:brushSize
       bind:brushType
+      bind:pressureResponsive
+      {currentPressure}
       {userCanvases}
       {sessions}
       {isLoading}
@@ -250,9 +258,11 @@
     <div class="canvas-wrapper">
       <DrawingCanvas
         bind:ctx
+        bind:currentPressure
         {brushColor}
         {brushSize}
         {brushType}
+        {pressureResponsive}
         {session}
         {userData}
         bind:this={canvasComponent}
@@ -319,6 +329,24 @@
     background-color: #0f0;
     color: #000;
     border: 1px solid #0f0;
+  }
+  .tab-link {
+    background-color: #222;
+    color: #ccc;
+    border: 1px solid #444;
+    padding: 0.5rem 1.25rem;
+    cursor: pointer;
+    font-weight: bold;
+    font-family: inherit;
+    border-radius: 4px;
+    transition: background 0.3s, color 0.3s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+  .tab-link:hover {
+    background-color: #333;
+    color: #fff;
   }
   .canvas-wrapper {
     display: flex;

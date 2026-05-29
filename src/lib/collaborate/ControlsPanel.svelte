@@ -12,6 +12,8 @@
   export let isLoading: boolean = false;
   export let shareLink: string = '';
   export let currentSessionId: string | null = null;
+  export let currentPressure: number = 0.5;
+  export let pressureResponsive: boolean = false;
 
   const dispatch = createEventDispatcher<{
     createSession: string;
@@ -151,6 +153,20 @@
     </select>
   </div>
   <div class="control-group">
+    <label>Pressure:</label>
+    <div class="pressure-indicator">
+      <div class="pressure-bar" style="width: {currentPressure * 100}%"></div>
+      <span class="pressure-label">
+        {currentPressure === 0.5 ? 'Mouse (fixed)' : `Stylus: ${currentPressure.toFixed(2)}`}
+      </span>
+    </div>
+  </div>
+  <div class="control-group">
+    <label for="pressure-responsive">Pressure FX:</label>
+    <input id="pressure-responsive" type="checkbox" bind:checked={pressureResponsive} disabled={isLoading} />
+    <span>{pressureResponsive ? 'On' : 'Off'}</span>
+  </div>
+  <div class="control-group">
     <button on:click={() => dispatch('saveCanvas')} disabled={isLoading}>Save Canvas</button>
     <button on:click={() => dispatch('clearCanvas')} disabled={isLoading}>Clear Canvas</button>
   </div>
@@ -231,5 +247,35 @@
   }
   input[readonly]:hover {
     background: #e8ecef;
+  }
+  .pressure-indicator {
+    flex: 1;
+    height: 20px;
+    background: #eee;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #ddd;
+  }
+  .pressure-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+    border-radius: 10px;
+    transition: width 0.1s ease;
+  }
+  .pressure-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+  }
+  input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
   }
 </style>
